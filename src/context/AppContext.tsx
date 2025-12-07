@@ -232,7 +232,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             patients, professionals, appointments, blockedDays,
             addPatient, updatePatient, deletePatient,
             addProfessional, updateProfessional, deleteProfessional,
-            addProfessional, updateProfessional, deleteProfessional,
             addAppointment, updateAppointment, deleteAppointment,
             addBlockedDay, removeBlockedDay,
             isLoading, error
