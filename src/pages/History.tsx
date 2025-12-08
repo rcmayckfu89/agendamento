@@ -1,22 +1,21 @@
-
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { HistoryItem } from '../types';
 
 export const History: React.FC = () => {
-    const { appointments } = useApp();
+    const { appointments, professionals } = useApp();
 
     // Convert appointments to History Items dynamically
     const historyData: HistoryItem[] = appointments
-        .filter(a => ['Completed', 'Cancelled', 'NoShow'].includes(a.status))
+        .filter(a => ['finished', 'canceled', 'no_show'].includes(a.status))
         .map(a => ({
             id: a.id,
             time: a.time,
             period: parseInt(a.time.split(':')[0]) < 12 ? 'AM' : 'PM',
-            patientName: a.patientName,
+            patientName: a.patientName || 'Paciente Desconhecido',
             description: `${a.type} com ${a.professionalName}`,
-            status: a.status as 'Completed' | 'Cancelled' | 'NoShow',
-            professional: a.professionalName
+            status: a.status as 'finished' | 'canceled' | 'no_show',
+            professional: a.professionalName || 'Profissional'
         }))
         .sort((a, b) => b.time.localeCompare(a.time));
 
@@ -46,6 +45,8 @@ export const History: React.FC = () => {
             if (!originalAppt) return false;
 
             const matchDate = !filters.date || originalAppt.date === filters.date;
+            // The item.professional holds the name, but our filter logic might be better using IDs if possible.
+            // But since the dropdown below will use names (simplest for now), we match names.
             const matchProfessional = filters.professional === 'Todos' || item.professional === filters.professional;
             const matchSearch = filters.search === '' || item.patientName.toLowerCase().includes(filters.search.toLowerCase());
             const matchStatus = filters.status === '' || item.status === filters.status;
@@ -56,7 +57,7 @@ export const History: React.FC = () => {
             return matchDate && matchProfessional && matchSearch && matchStatus && matchType;
         });
         setFilteredData(result);
-    }, [filters, appointments]); // Re-run when filters or global appointments change
+    }, [filters, appointments, historyData]); // Added historyData to dependency
 
     const handleFilterChange = (key: string, value: string) => {
         setFilters(prev => ({ ...prev, [key]: value }));
@@ -119,8 +120,11 @@ export const History: React.FC = () => {
                                 className="w-full pl-10 pr-3 py-2 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors appearance-none"
                             >
                                 <option>Todos</option>
-                                <option>Dr. João Silva</option>
-                                {/* We could map professionals here dynamically too */}
+                                {professionals.map(p => (
+                                    <option key={p.id} value={p.name || p.email || p.id}>
+                                        {p.name || p.email} ({p.role})
+                                    </option>
+                                ))}
                             </select>
                             <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">expand_more</span>
                         </div>
@@ -150,9 +154,9 @@ export const History: React.FC = () => {
                                 className="w-full pl-10 pr-3 py-2 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors appearance-none"
                             >
                                 <option value="">Todos</option>
-                                <option value="Completed">Concluído</option>
-                                <option value="NoShow">Paciente Faltou</option>
-                                <option value="Cancelled">Cancelado</option>
+                                <option value="finished">Concluído</option>
+                                <option value="no_show">Paciente Faltou</option>
+                                <option value="canceled">Cancelado</option>
                             </select>
                             <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">expand_more</span>
                         </div>
@@ -209,12 +213,12 @@ export const History: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-6">
-                                    {item.status === 'Completed' ? (
+                                    {item.status === 'finished' ? (
                                         <div className="flex items-center gap-2 text-sm text-green-600 bg-green-100/60 px-3 py-1 rounded-full font-medium">
                                             <span className="material-symbols-outlined text-base">check_circle</span>
                                             Concluído
                                         </div>
-                                    ) : item.status === 'Cancelled' ? (
+                                    ) : item.status === 'canceled' ? (
                                         <div className="flex items-center gap-2 text-sm text-red-600 bg-red-100/60 px-3 py-1 rounded-full font-medium">
                                             <span className="material-symbols-outlined text-base">cancel</span>
                                             Cancelado
