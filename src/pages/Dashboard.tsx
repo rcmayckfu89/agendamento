@@ -81,7 +81,7 @@ export const Dashboard: React.FC = () => {
         setIsModalOpen(true);
     };
 
-    const updateStatus = (status: 'Completed' | 'NoShow' | 'Cancelled') => {
+    const updateStatus = (status: 'finished' | 'no_show' | 'canceled') => {
         if (selectedAppointment) {
             updateAppointment({
                 ...selectedAppointment,
@@ -250,7 +250,7 @@ export const Dashboard: React.FC = () => {
                         </div>
                         <div className="p-6 space-y-3">
                             <button
-                                onClick={() => updateStatus('Completed')}
+                                onClick={() => updateStatus('finished')}
                                 className="w-full bg-green-100 hover:bg-green-200 text-green-800 font-semibold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors border border-green-200"
                             >
                                 <span className="material-symbols-outlined">check_circle</span>
@@ -258,7 +258,7 @@ export const Dashboard: React.FC = () => {
                             </button>
 
                             <button
-                                onClick={() => updateStatus('NoShow')}
+                                onClick={() => updateStatus('no_show')}
                                 className="w-full bg-orange-100 hover:bg-orange-200 text-orange-800 font-semibold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors border border-orange-200"
                             >
                                 <span className="material-symbols-outlined">person_off</span>
@@ -266,7 +266,7 @@ export const Dashboard: React.FC = () => {
                             </button>
 
                             <button
-                                onClick={() => updateStatus('Cancelled')}
+                                onClick={() => updateStatus('canceled')}
                                 className="w-full bg-red-100 hover:bg-red-200 text-red-800 font-semibold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors border border-red-200"
                             >
                                 <span className="material-symbols-outlined">cancel</span>
