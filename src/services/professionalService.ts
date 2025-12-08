@@ -137,11 +137,12 @@ export const professionalService = {
         if (upsertData.length > 0) {
             const { error: scheduleError } = await supabase
                 .from('schedule_config')
-                .upsert(upsertData, { onConflict: 'professional_id, weekday' }); // Composite unique key assumed
+                .upsert(upsertData, { onConflict: 'schedule_config_professional_id_weekday_key' as any });
 
             if (scheduleError) throw new Error(scheduleError.message);
         }
     },
+
     async delete(id: string): Promise<void> {
         // Deleting from profiles will cascade delete schedule_config if FK is set to CASCADE.
         // If not, we should delete schedule first manually?
