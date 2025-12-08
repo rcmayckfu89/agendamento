@@ -108,10 +108,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const addPatient = async (patient: Partial<Patient>) => {
         try {
             const newPatientData = await patientService.create(patient);
-            // Optimistic update or re-fetch? Let's assume we can merge returned row with Partial
-            // ACTUALLY, simpler to re-fetch or construct the object fully
-            // Re-fetch is safer for consistency
-            await refreshData();
+
+            // Optimistic Update
+            setPatients(prev => {
+                const newPatient: Patient = {
+                    ...newPatientData,
+                    initials: newPatientData.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+                };
+                return [newPatient, ...prev];
+            });
+
         } catch (err: any) {
             console.error(err);
             throw err;
@@ -121,8 +127,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const updatePatient = async (patient: Partial<Patient>) => {
         if (!patient.id) return;
         try {
-            await patientService.update(patient.id, patient);
-            await refreshData();
+            const updatedData = await patientService.update(patient.id, patient);
+
+            // Optimistic Update
+            setPatients(prev => prev.map(p => p.id === patient.id ? { ...p, ...updatedData } : p));
+
         } catch (err: any) {
             console.error(err);
             throw err;
@@ -142,7 +151,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     // Actions - Professionals
     const addProfessional = async (professional: Professional) => {
         // Not implemented fully in service yet (create), but interface exists
-        // Assuming we might need a dedicated UI for managing professionals
         console.warn('addProfessional not fully implemented in backend');
         setProfessionals(prev => [...prev, professional]);
     };
@@ -152,8 +160,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             await professionalService.update(professional);
             // Optimistic update
             setProfessionals(prev => prev.map(p => p.id === professional.id ? professional : p));
-            // Or refresh to be sure
-            // await refreshData(); 
         } catch (err: any) {
             console.error('Error updating professional:', err);
             setError('Erro ao salvar profissional. Verifique se o banco foi atualizado (SQL).');
@@ -167,8 +173,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             setProfessionals(prev => prev.filter(p => p.id !== id));
         } catch (err: any) {
             console.error('Error deleting professional:', err);
-            // Usually we can't easily revert optimistic delete without re-fetching, 
-            // but user sees error and refresh will fix consistency.
             setError('Erro ao remover profissional.');
             await refreshData();
         }
@@ -177,8 +181,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     // Actions - Appointments
     const addAppointment = async (appointment: Partial<Appointment>) => {
         try {
-            await appointmentService.create(appointment);
-            await refreshData();
+            const newAppointmentData = await appointmentService.create(appointment);
+
+            // Resolve Names for UI
+            const patientObj = patients.find(p => p.id === newAppointmentData.patient_id);
+            const professionalObj = professionals.find(p => p.id === newAppointmentData.professional_id);
+
+            const fullAppointment: Appointment = {
+                ...newAppointmentData,
+                patientName: patientObj?.name || 'Desconhecido',
+                professionalName: professionalObj?.name || professionalObj?.email || 'Profissional',
+                type: newAppointmentData.service || 'AGENDA'
+            };
+
+            setAppointments(prev => [fullAppointment, ...prev]);
+
         } catch (err: any) {
             console.error(err);
             throw err;
@@ -188,8 +205,31 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const updateAppointment = async (appointment: Partial<Appointment>) => {
         if (!appointment.id) return;
         try {
-            await appointmentService.update(appointment.id, appointment);
-            await refreshData();
+            const updatedData = await appointmentService.update(appointment.id, appointment);
+
+            setAppointments(prev => prev.map(a => {
+                if (a.id === appointment.id) {
+                    // Re-resolve names if IDs changed (unlikely but safe)
+                    // Or mostly just update status/time
+                    const patientObj = patients.find(p => p.id === updatedData.patient_id) || a.patient;
+                    const professionalObj = professionals.find(p => p.id === updatedData.professional_id) || a.professional; // Keep existing if not found? No, should be found.
+
+                    // If logic is complex, just merging `a` and `updatedData` usually works for simple fields
+                    return {
+                        ...a,
+                        ...updatedData,
+                        status: updatedData.status, // Ensure status enum is correct
+                        // Only update names if IDs changed, else keep existing to avoid flickering
+                        // But actually, we don't have the objects in updatedData, only IDs.
+                        // We must rely on `a.patientName` unless we want to re-lookup.
+                        // Since we have global patients/pros lists, we can re-lookup cheaply.
+                        patientName: patients.find(p => p.id === updatedData.patient_id)?.name || a.patientName,
+                        professionalName: professionals.find(p => p.id === updatedData.professional_id)?.name || professionals.find(p => p.id === updatedData.professional_id)?.email || a.professionalName
+                    };
+                }
+                return a;
+            }));
+
         } catch (err: any) {
             console.error(err);
             throw err;
@@ -209,8 +249,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     // Actions - Blocked Days
     const addBlockedDay = async (day: Partial<BlockedDay>) => {
         try {
-            await settingsService.addBlockedDay(day);
-            await refreshData();
+            const newDay = await settingsService.addBlockedDay(day);
+            setBlockedDays(prev => [...prev, newDay]);
         } catch (err: any) {
             console.error(err);
             throw err;
