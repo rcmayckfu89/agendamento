@@ -17,28 +17,29 @@ export const Dashboard: React.FC = () => {
     const stats: StatData[] = useMemo(() => {
         const today = new Date().toISOString().split('T')[0];
         // Count Completed for historical stats, and Scheduled for "current load"
-        const todayAppts = appointments.filter(a => a.date === today && a.status !== 'Cancelled');
+        const todayAppts = appointments.filter(a => a.date === today && a.status !== 'canceled');
 
         // Helper to count by role
         const countByRole = (role: string) => {
             return todayAppts.filter(a => {
-                const prof = professionals.find(p => p.id === a.professionalId);
+                const prof = professionals.find(p => p.id === a.professional_id);
                 return prof?.role === role;
             }).length;
         };
 
         // Total capacity estimation (simplistic: 10 per day per professional for demo)
-        const totalDocs = professionals.filter(p => p.role === 'Médico').length * 10;
-        const totalNurses = professionals.filter(p => p.role === 'Enfermeira').length * 10;
-        const totalTechs = professionals.filter(p => p.role === 'Técnica').length * 10;
+        const totalDocs = professionals.filter(p => p.role === 'medico').length * 10;
+        const totalNurses = professionals.filter(p => p.role === 'enfermeiro').length * 10;
+        const totalTechs = professionals.filter(p => p.role === 'tecnico').length * 10;
 
-        const currentDocs = countByRole('Médico');
-        const currentNurses = countByRole('Enfermeira');
-        const currentTechs = countByRole('Técnica');
+        const currentDocs = countByRole('medico');
+        const currentNurses = countByRole('enfermeiro');
+        const currentTechs = countByRole('tecnico');
 
         // Count "Urgent" (DEMANDA ESPONTÂNEA)
         const urgentCount = todayAppts.filter(a => a.type === 'DEMANDA ESPONTÂNEA').length;
 
+        // Note: Labels mapped from english roles to portuguese display if needed, but keeping categories as keys
         return [
             { category: 'Doctor', current: currentDocs, total: Math.max(currentDocs, totalDocs || 10), label: 'agendados hoje', icon: 'medical_services', colorClass: 'violet', ringColorClass: 'text-violet-500' },
             { category: 'Nurse', current: currentNurses, total: Math.max(currentNurses, totalNurses || 10), label: 'agendados hoje', icon: 'health_and_safety', colorClass: 'green', ringColorClass: 'text-green-500' },
@@ -53,15 +54,26 @@ export const Dashboard: React.FC = () => {
         const today = new Date().toISOString().split('T')[0];
 
         return appointments
-            .filter(a => a.date === today && a.status === 'Scheduled')
+            .filter(a => a.date === today && a.status === 'scheduled')
             .sort((a, b) => a.time.localeCompare(b.time));
     }, [appointments]);
 
     const getNextForRole = (role: string) => {
         return nextAppointments.filter(a => {
-            const prof = professionals.find(p => p.id === a.professionalId);
-            return prof?.role === role;
-        }); // Removed slice(0,3) to show all pending
+            const prof = professionals.find(p => p.id === a.professional_id);
+            // Verify exact role string from DB ('medico', 'enfermeiro', 'tecnico') vs UI display
+            // UI Cards use 'Doctor', 'Nurse', 'Technician' categories, but here we pass 'Médico' etc?
+            // Let's check how it's called.
+            // It is called with 'Médico', 'Enfermeira', 'Técnica'.
+            // But DB roles are 'medico', 'enfermeiro', 'tecnico'.
+            // Mapping needed.
+            const roleMap: Record<string, string> = {
+                'Médico': 'medico',
+                'Enfermeira': 'enfermeiro',
+                'Técnica': 'tecnico'
+            };
+            return prof?.role === roleMap[role];
+        });
     };
 
     const handleAppointmentClick = (app: Appointment) => {
