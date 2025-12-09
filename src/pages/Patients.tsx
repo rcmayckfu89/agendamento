@@ -206,7 +206,7 @@ export const Patients: React.FC = () => {
                 </div>
             </div>
 
-            <div className="bg-card border border-border rounded-xl shadow-soft-lg overflow-hidden flex-1 overflow-auto">
+            <div className="bg-card border border-border rounded-xl shadow-soft-lg flex-1 overflow-y-auto">
                 <table className="w-full text-left">
                     <thead className="bg-secondary/50 sticky top-0 z-10">
                         <tr>
