@@ -23,6 +23,10 @@ export interface Patient extends PatientRow {
     // Backwards compatibility or UI helpers
     registeredAt?: string; // Alias for created_at
     cpfOrCns?: string; // UI helper for display
+
+    // Explicitly add these if PatientRow doesn't propagate them immediately in IDE context, 
+    // but typically it does. Added here for clarity/overrides if needed.
+    // They are already in PatientRow which is extended, so we don't need to re-declare unless we change type.
 }
 
 // Service Types (Manual Enum - maybe move to DB later)

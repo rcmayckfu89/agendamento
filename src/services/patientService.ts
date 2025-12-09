@@ -24,7 +24,10 @@ export const patientService = {
             registeredAt: row.created_at || undefined,
             cpfOrCns: row.cpf || row.cns || '',
             comorbidities: row.comorbidities || [], // CRITICAL: Ensure array
-            name: row.name || 'Sem Nome'
+            name: row.name || 'Sem Nome',
+            health_agent: row.health_agent,
+            birth_date: row.birth_date,
+            guardian_name: row.guardian_name
         }));
     },
 

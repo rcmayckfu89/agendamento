@@ -16,7 +16,9 @@ export const Patients: React.FC = () => {
     // Form State
     const [formData, setFormData] = useState({
         name: '',
-        email: '',
+        healthAgent: '',
+        birthDate: '',
+        guardianName: '',
         phone: '',
         cpfOrCns: '',
         comorbidities: [] as string[]
@@ -83,7 +85,7 @@ export const Patients: React.FC = () => {
     // So let's replace the top part properly.
 
     const handleOpenCreate = () => {
-        setFormData({ name: '', email: '', phone: '', cpfOrCns: '', comorbidities: [] });
+        setFormData({ name: '', healthAgent: '', birthDate: '', guardianName: '', phone: '', cpfOrCns: '', comorbidities: [] });
         setCurrentPatientId(null);
         setIsModalOpen(true);
     };
@@ -91,10 +93,12 @@ export const Patients: React.FC = () => {
     const handleOpenEdit = (patient: Patient) => {
         setFormData({
             name: patient.name,
-            email: patient.email,
-            phone: patient.phone,
-            cpfOrCns: patient.cpfOrCns,
-            comorbidities: patient.comorbidities
+            healthAgent: patient.health_agent || '',
+            birthDate: patient.birth_date || '',
+            guardianName: patient.guardian_name || '',
+            phone: patient.phone || '',
+            cpfOrCns: patient.cpfOrCns || '',
+            comorbidities: patient.comorbidities || []
         });
         setCurrentPatientId(patient.id);
         setIsModalOpen(true);
@@ -137,7 +141,9 @@ export const Patients: React.FC = () => {
                 await updatePatient({
                     ...existing,
                     name: formData.name,
-                    email: formData.email,
+                    health_agent: formData.healthAgent,
+                    birth_date: formData.birthDate,
+                    guardian_name: formData.guardianName,
                     phone: formData.phone,
                     cpfOrCns: formData.cpfOrCns,
                     comorbidities: formData.comorbidities,
@@ -149,7 +155,9 @@ export const Patients: React.FC = () => {
             const newPatient: Partial<Patient> = {
                 initials: initials,
                 name: formData.name,
-                email: formData.email,
+                health_agent: formData.healthAgent,
+                birth_date: formData.birthDate,
+                guardian_name: formData.guardianName,
                 phone: formData.phone,
                 nextAppointment: '-',
                 color: randomColor,
@@ -227,7 +235,7 @@ export const Patients: React.FC = () => {
                                         </div>
                                         <div>
                                             <div className="font-semibold text-foreground">{patient.name}</div>
-                                            <div className="text-sm text-muted-foreground">{patient.email}</div>
+                                            <div className="text-sm text-muted-foreground">{patient.health_agent ? `ACS: ${patient.health_agent}` : 'Sem ACS'}</div>
                                         </div>
                                     </td>
                                     <td className="p-4">
@@ -322,13 +330,32 @@ export const Patients: React.FC = () => {
                                     />
                                 </div>
                                 <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium mb-1">E-mail</label>
+                                    <label className="block text-sm font-medium mb-1">Agente de Saúde</label>
                                     <input
-                                        type="email"
-                                        value={formData.email}
-                                        onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                        type="text"
+                                        value={formData.healthAgent}
+                                        onChange={e => setFormData({ ...formData, healthAgent: e.target.value })}
                                         className="w-full rounded-md border border-border bg-background px-3 py-2 focus:ring-2 focus:ring-primary"
-                                        placeholder="exemplo@email.com"
+                                        placeholder="Nome do ACS"
+                                    />
+                                </div>
+                                <div className="md:col-span-1">
+                                    <label className="block text-sm font-medium mb-1">Data de Nascimento</label>
+                                    <input
+                                        type="date"
+                                        value={formData.birthDate}
+                                        onChange={e => setFormData({ ...formData, birthDate: e.target.value })}
+                                        className="w-full rounded-md border border-border bg-background px-3 py-2 focus:ring-2 focus:ring-primary"
+                                    />
+                                </div>
+                                <div className="md:col-span-1">
+                                    <label className="block text-sm font-medium mb-1">Nome do Responsável</label>
+                                    <input
+                                        type="text"
+                                        value={formData.guardianName}
+                                        onChange={e => setFormData({ ...formData, guardianName: e.target.value })}
+                                        className="w-full rounded-md border border-border bg-background px-3 py-2 focus:ring-2 focus:ring-primary"
+                                        placeholder="Mãe, Pai ou Responsável"
                                     />
                                 </div>
                             </div>

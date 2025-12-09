@@ -88,6 +88,9 @@ export type Database = {
                     comorbidities: string[] | null
                     created_at: string | null
                     updated_at: string | null
+                    health_agent: string | null
+                    birth_date: string | null
+                    guardian_name: string | null
                 }
                 Insert: {
                     id?: string
@@ -99,6 +102,9 @@ export type Database = {
                     comorbidities?: string[] | null
                     created_at?: string | null
                     updated_at?: string | null
+                    health_agent?: string | null
+                    birth_date?: string | null
+                    guardian_name?: string | null
                 }
                 Update: {
                     id?: string
@@ -110,6 +116,9 @@ export type Database = {
                     comorbidities?: string[] | null
                     created_at?: string | null
                     updated_at?: string | null
+                    health_agent?: string | null
+                    birth_date?: string | null
+                    guardian_name?: string | null
                 }
                 Relationships: []
             }
