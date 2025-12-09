@@ -5,12 +5,15 @@ import { Appointment, ServiceType } from '../types';
 import { daysOfWeek, weekDaySlugs } from '../constants/weekConfig';
 
 export const Agenda: React.FC = () => {
-    const { professionals, patients, appointments, addAppointment, blockedDays } = useApp();
+    const { professionals, patients, appointments, addAppointment, deleteAppointment, blockedDays } = useApp();
 
     // UI State
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedProfId, setSelectedProfId] = useState<string>(professionals[0]?.id || '');
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [apptToDelete, setApptToDelete] = useState<Appointment | null>(null);
 
     // Modal Form State
     const [formPatientId, setFormPatientId] = useState('');
@@ -144,6 +147,19 @@ export const Agenda: React.FC = () => {
         setSuccessMessage("Agendamento confirmado com sucesso!");
 
         setTimeout(() => setIsModalOpen(false), 1500);
+    };
+
+    const handleOpenDelete = (appt: Appointment) => {
+        setApptToDelete(appt);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (apptToDelete && apptToDelete.id) {
+            await deleteAppointment(apptToDelete.id);
+            setIsDeleteModalOpen(false);
+            setApptToDelete(null);
+        }
     };
 
     const isToday = (date: Date) => {
@@ -297,6 +313,7 @@ export const Agenda: React.FC = () => {
 
                                         return (
                                             <div
+                                                onClick={() => handleOpenDelete(appt)}
                                                 key={appt.id}
                                                 className={`${colorClass} border-l-4 p-2 rounded text-xs shadow-sm cursor-pointer hover:brightness-95`}
                                                 title={`${type} - ${appt.patientName || 'Sem Nome'}`}
@@ -420,6 +437,44 @@ export const Agenda: React.FC = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Exclusão de Agendamento */}
+            {isDeleteModalOpen && apptToDelete && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-card rounded-xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-destructive/5">
+                            <h3 className="font-bold text-lg text-destructive flex items-center gap-2">
+                                <span className="material-symbols-outlined">delete_forever</span>
+                                Cancelar Agendamento?
+                            </h3>
+                            <button onClick={() => setIsDeleteModalOpen(false)} className="text-muted-foreground hover:text-foreground">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <div className="mb-4 text-sm text-foreground">
+                                <p><strong>Paciente:</strong> {apptToDelete.patientName}</p>
+                                <p><strong>Data:</strong> {apptToDelete.date.split('-').reverse().join('/')} às {apptToDelete.time}</p>
+                                <p className="mt-4 text-muted-foreground">Esta ação não pode ser desfeita.</p>
+                            </div>
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={() => setIsDeleteModalOpen(false)}
+                                    className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-secondary transition-colors"
+                                >
+                                    Manter
+                                </button>
+                                <button
+                                    onClick={handleConfirmDelete}
+                                    className="px-4 py-2 rounded-lg bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90 transition-colors shadow-sm"
+                                >
+                                    Confirmar Cancelamento
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
