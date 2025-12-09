@@ -455,10 +455,27 @@ export const Agenda: React.FC = () => {
                             </button>
                         </div>
                         <div className="p-6">
-                            <div className="mb-4 text-sm text-foreground">
-                                <p><strong>Paciente:</strong> {apptToDelete.patientName}</p>
-                                <p><strong>Data:</strong> {apptToDelete.date.split('-').reverse().join('/')} às {apptToDelete.time}</p>
-                                <p className="mt-4 text-muted-foreground">Esta ação não pode ser desfeita.</p>
+                            <div className="mb-4 text-sm text-foreground space-y-2">
+                                <div className="p-3 bg-secondary/20 rounded-lg border border-border">
+                                    <p><strong>Paciente:</strong> {apptToDelete.patientName}</p>
+                                    {(() => {
+                                        const patient = patients.find(p => p.id === apptToDelete.patient_id);
+                                        if (patient) {
+                                            return (
+                                                <div className="mt-1 text-xs text-muted-foreground space-y-0.5">
+                                                    <p><strong>Nascimento:</strong> {patient.birth_date ? new Date(patient.birth_date).toLocaleDateString('pt-BR') : 'Não informado'}</p>
+                                                    <p><strong>ACS:</strong> {patient.health_agent || 'Não informado'}</p>
+                                                    <p><strong>Responsável:</strong> {patient.guardian_name || 'Não informado'}</p>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
+                                </div>
+                                <div className="p-3 bg-red-50 rounded-lg border border-red-100 text-red-800">
+                                    <p><strong>Agendamento:</strong> {apptToDelete.date.split('-').reverse().join('/')} às {apptToDelete.time}</p>
+                                    <p className="mt-2 text-xs opacity-90">Esta ação cancelará o agendamento permanentemente.</p>
+                                </div>
                             </div>
                             <div className="flex justify-end gap-3">
                                 <button
