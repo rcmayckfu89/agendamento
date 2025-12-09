@@ -17,6 +17,8 @@ export const Agenda: React.FC = () => {
 
     // Modal Form State
     const [formPatientId, setFormPatientId] = useState('');
+    const [patientSearchTerm, setPatientSearchTerm] = useState('');
+    const [showPatientList, setShowPatientList] = useState(false);
     const [formDate, setFormDate] = useState('');
     const [formTime, setFormTime] = useState('');
     const [formType, setFormType] = useState<ServiceType>('AGENDA');
@@ -108,6 +110,9 @@ export const Agenda: React.FC = () => {
         const today = new Date().toISOString().split('T')[0];
         setFormDate(today);
         setFormTime('08:00');
+        setFormPatientId('');
+        setPatientSearchTerm('');
+        setShowPatientList(false);
         setIsModalOpen(true);
     };
 
@@ -371,19 +376,58 @@ export const Agenda: React.FC = () => {
                                 />
                             </div>
 
-                            <div>
+                            <div className="relative">
                                 <label className="block text-sm font-medium mb-1">Paciente</label>
-                                <select
-                                    required
-                                    value={formPatientId}
-                                    onChange={(e) => setFormPatientId(e.target.value)}
-                                    className="w-full rounded-md border border-border bg-background px-3 py-2"
-                                >
-                                    <option value="">Selecione um paciente...</option>
-                                    {patients.map(p => (
-                                        <option key={p.id} value={p.id}>{p.name} (CPF: {p.cpfOrCns})</option>
-                                    ))}
-                                </select>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        placeholder="Digite o nome do paciente..."
+                                        value={patientSearchTerm}
+                                        onChange={(e) => {
+                                            setPatientSearchTerm(e.target.value);
+                                            setShowPatientList(true);
+                                            if (e.target.value === '') setFormPatientId('');
+                                        }}
+                                        onFocus={() => setShowPatientList(true)}
+                                        className="w-full rounded-md border border-border bg-background px-3 py-2 pr-10 focus:ring-2 focus:ring-primary focus:outline-none"
+                                    />
+                                    {formPatientId && (
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-600">
+                                            <span className="material-symbols-outlined text-lg">check_circle</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {showPatientList && (
+                                    <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-md shadow-lg max-h-60 overflow-auto">
+                                        {patients.filter(p => p.name.toLowerCase().includes(patientSearchTerm.toLowerCase())).length > 0 ? (
+                                            patients
+                                                .filter(p => p.name.toLowerCase().includes(patientSearchTerm.toLowerCase()))
+                                                .map(p => (
+                                                    <div
+                                                        key={p.id}
+                                                        onClick={() => {
+                                                            setFormPatientId(p.id);
+                                                            setPatientSearchTerm(p.name);
+                                                            setShowPatientList(false);
+                                                        }}
+                                                        className="px-4 py-2 hover:bg-accent cursor-pointer text-sm border-b border-border/50 last:border-0 flex flex-col"
+                                                    >
+                                                        <span className="font-medium">{p.name}</span>
+                                                        <span className="text-xs text-muted-foreground">CPF: {p.cpfOrCns}</span>
+                                                    </div>
+                                                ))
+                                        ) : (
+                                            <div className="px-4 py-3 text-sm text-muted-foreground text-center">
+                                                Nenhum paciente encontrado.
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                {/* Overlay to close list when clicking outside (simple version) */}
+                                {showPatientList && (
+                                    <div className="fixed inset-0 z-0" onClick={() => setShowPatientList(false)}></div>
+                                )}
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
