@@ -18,7 +18,7 @@ export type Database = {
                     patient_id: string
                     professional_id: string
                     service: string
-                    status: Database["public"]["Enums"]["appointment_status"]
+                    status: Database["public"]["Enums"]["appointment_status"] | null
                     time: string
                     updated_at: string | null
                 }
@@ -30,7 +30,7 @@ export type Database = {
                     patient_id: string
                     professional_id: string
                     service: string
-                    status?: Database["public"]["Enums"]["appointment_status"]
+                    status?: Database["public"]["Enums"]["appointment_status"] | null
                     time: string
                     updated_at?: string | null
                 }
@@ -42,7 +42,7 @@ export type Database = {
                     patient_id?: string
                     professional_id?: string
                     service?: string
-                    status?: Database["public"]["Enums"]["appointment_status"]
+                    status?: Database["public"]["Enums"]["appointment_status"] | null
                     time?: string
                     updated_at?: string | null
                 }
@@ -52,6 +52,13 @@ export type Database = {
                         columns: ["patient_id"]
                         isOneToOne: false
                         referencedRelation: "patients"
+                        referencedColumns: ["id"]
+                    },
+                    {
+                        foreignKeyName: "appointments_professional_id_fkey"
+                        columns: ["professional_id"]
+                        isOneToOne: false
+                        referencedRelation: "profiles"
                         referencedColumns: ["id"]
                     },
                 ]
@@ -77,48 +84,95 @@ export type Database = {
                 }
                 Relationships: []
             }
-            patients: {
+            medications: {
                 Row: {
+                    created_at: string
+                    duration_days: number
                     id: string
                     name: string
-                    email: string | null
-                    phone: string | null
-                    cpf: string | null
-                    cns: string | null
-                    comorbidities: string[] | null
-                    created_at: string | null
-                    updated_at: string | null
-                    health_agent: string | null
-                    birth_date: string | null
-                    guardian_name: string | null
+                    notes: string | null
+                    patient_id: string
+                    prescription_date: string
+                    priority: string
+                    renewal_date: string | null
+                    status: string | null
                 }
                 Insert: {
+                    created_at?: string
+                    duration_days: number
                     id?: string
                     name: string
-                    email?: string | null
-                    phone?: string | null
-                    cpf?: string | null
-                    cns?: string | null
-                    comorbidities?: string[] | null
-                    created_at?: string | null
-                    updated_at?: string | null
-                    health_agent?: string | null
-                    birth_date?: string | null
-                    guardian_name?: string | null
+                    notes?: string | null
+                    patient_id: string
+                    prescription_date: string
+                    priority: string
+                    renewal_date?: string | null
+                    status?: string | null
                 }
                 Update: {
+                    created_at?: string
+                    duration_days?: number
                     id?: string
                     name?: string
-                    email?: string | null
-                    phone?: string | null
-                    cpf?: string | null
+                    notes?: string | null
+                    patient_id?: string
+                    prescription_date?: string
+                    priority?: string
+                    renewal_date?: string | null
+                    status?: string | null
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "medications_patient_id_fkey"
+                        columns: ["patient_id"]
+                        isOneToOne: false
+                        referencedRelation: "patients"
+                        referencedColumns: ["id"]
+                    },
+                ]
+            }
+            patients: {
+                Row: {
+                    birth_date: string | null
+                    cns: string | null
+                    comorbidities: string[] | null
+                    cpf: string | null
+                    created_at: string | null
+                    email: string | null
+                    guardian_name: string | null
+                    health_agent: string | null
+                    id: string
+                    name: string
+                    phone: string | null
+                    updated_at: string | null
+                }
+                Insert: {
+                    birth_date?: string | null
                     cns?: string | null
                     comorbidities?: string[] | null
+                    cpf?: string | null
                     created_at?: string | null
-                    updated_at?: string | null
-                    health_agent?: string | null
-                    birth_date?: string | null
+                    email?: string | null
                     guardian_name?: string | null
+                    health_agent?: string | null
+                    id?: string
+                    name: string
+                    phone?: string | null
+                    updated_at?: string | null
+                }
+                Update: {
+                    birth_date?: string | null
+                    cns?: string | null
+                    comorbidities?: string[] | null
+                    cpf?: string | null
+                    created_at?: string | null
+                    email?: string | null
+                    guardian_name?: string | null
+                    health_agent?: string | null
+                    id?: string
+                    name?: string
+                    phone?: string | null
+                    updated_at?: string | null
                 }
                 Relationships: []
             }
@@ -174,8 +228,8 @@ export type Database = {
                     interval_minutes?: number
                     morning_end?: string | null
                     morning_start?: string | null
-                    professional_id?: string
-                    weekday?: number
+                    professional_id: string
+                    weekday: number
                 }
                 Relationships: []
             }
@@ -200,7 +254,7 @@ export type Database = {
             }
         }
         Enums: {
-            app_role: "medico" | "enfermeiro" | "tecnico"
+            app_role: "medico" | "enfermeiro" | "tecnico" | "recepcionista"
             appointment_status: "scheduled" | "canceled" | "finished" | "no_show"
         }
         CompositeTypes: {

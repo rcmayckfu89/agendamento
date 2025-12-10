@@ -3,11 +3,13 @@ import { NavLink } from 'react-router-dom';
 import { navItems } from '../../constants/navigation';
 import { useLayout } from '../../context/LayoutContext';
 import { useAuth } from '../../context/AuthContext';
+import { useUrgentMedicationsCount } from '../../hooks/useUrgentMedications';
 
 export const Sidebar: React.FC = () => {
     const { isSidebarCollapsed, toggleSidebar } = useLayout();
     const { signOut } = useAuth();
     const [isDarkMode, setIsDarkMode] = useState(false);
+    const { count: urgentMedicationsCount } = useUrgentMedicationsCount();
 
     useEffect(() => {
         // Check for saved theme or system preference
@@ -82,7 +84,7 @@ export const Sidebar: React.FC = () => {
                         to={item.path}
                         title={isSidebarCollapsed ? item.name : ''}
                         className={({ isActive }) =>
-                            `flex items-center gap-3 px-3 py-3 rounded-lg font-medium transition-all duration-200 overflow-hidden ${isActive
+                            `flex items-center gap-3 px-3 py-3 rounded-lg font-medium transition-all duration-200 overflow-hidden relative ${isActive
                                 ? 'bg-primary text-primary-foreground shadow-soft font-semibold'
                                 : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                             } ${isSidebarCollapsed ? 'justify-center' : ''}`
@@ -96,6 +98,12 @@ export const Sidebar: React.FC = () => {
                                 <span className={`whitespace-nowrap transition-opacity duration-200 ${isSidebarCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100'}`}>
                                     {item.name}
                                 </span>
+                                {/* Badge for Medications */}
+                                {item.path === '/medications' && urgentMedicationsCount > 0 && (
+                                    <span className={`absolute ${isSidebarCollapsed ? 'top-1.5 right-1.5' : 'top-2 right-2'} bg-red-500 text-white rounded-full min-w-[20px] h-5 px-1.5 text-xs font-bold flex items-center justify-center shadow-md animate-pulse`}>
+                                        {urgentMedicationsCount}
+                                    </span>
+                                )}
                             </>
                         )}
                     </NavLink>

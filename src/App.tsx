@@ -8,6 +8,7 @@ import { Patients } from './pages/Patients';
 import { Settings } from './pages/Settings';
 import { History } from './pages/History';
 import { Login } from './pages/Login';
+import { Medications } from './pages/Medications';
 import { AppProvider } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LayoutProvider, useLayout } from './context/LayoutContext';
@@ -48,8 +49,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const AppContent = () => {
+  const location = useLocation();
+
   return (
-    <Routes>
+    <Routes location={location} key={location.pathname}>
       <Route path="/login" element={<Login />} />
 
       <Route path="/" element={
@@ -67,6 +70,12 @@ const AppContent = () => {
       <Route path="/patients" element={
         <ProtectedRoute>
           <Patients />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/medications" element={
+        <ProtectedRoute>
+          <Medications />
         </ProtectedRoute>
       } />
 

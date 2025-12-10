@@ -7,6 +7,7 @@ export type AppointmentRow = Database['public']['Tables']['appointments']['Row']
 export type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 export type ScheduleConfigRow = Database['public']['Tables']['schedule_config']['Row'];
 export type BlockedDayRow = Database['public']['Tables']['blocked_days']['Row'];
+export type MedicationRow = Database['public']['Tables']['medications']['Row'];
 
 // Enums from DB
 export type UserRole = Database['public']['Enums']['app_role'];
@@ -71,6 +72,13 @@ export interface Appointment extends AppointmentRow {
 }
 
 export interface BlockedDay extends BlockedDayRow { }
+
+// Medication: Extends Row with patient info and computed fields
+export interface Medication extends MedicationRow {
+    patient?: PatientRow; // Expanded relation
+    patientName?: string; // For display
+    daysUntilRenewal?: number; // Computed from renewal_date
+}
 
 // History Item (Derived from Appointment)
 export interface HistoryItem {
