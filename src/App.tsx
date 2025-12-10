@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { Routes, Route, Navigate, useLocation, HashRouter } from 'react-router-dom';
-import { Sidebar } from './components/layout/Sidebar';
+import { Sidebar, MobileHeader } from './components/layout/Sidebar';
 import { Dashboard } from './pages/Dashboard';
 import { Agenda } from './pages/Agenda';
 import { Patients } from './pages/Patients';
@@ -16,7 +15,7 @@ import { LayoutProvider, useLayout } from './context/LayoutContext';
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, loading } = useAuth();
-  const { isSidebarCollapsed } = useLayout();
+  const { isSidebarCollapsed, isMobile } = useLayout();
   const location = useLocation();
 
   if (loading) {
@@ -36,11 +35,21 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
+      {/* Mobile Header with hamburger */}
+      <MobileHeader />
+
+      {/* Sidebar (handles mobile/desktop internally) */}
       <Sidebar />
+
+      {/* Main content area */}
       <main
-        className={`flex-1 overflow-auto p-8 relative z-0 transition-all duration-300 ${isSidebarCollapsed ? 'ml-20' : 'ml-64'}`}
+        className={`flex-1 overflow-auto relative z-0 transition-all duration-300
+          ${isMobile
+            ? 'pt-14 p-4' // Mobile: padding-top for header, smaller padding
+            : `p-8 ${isSidebarCollapsed ? 'ml-20' : 'ml-64'}` // Desktop: sidebar margin
+          }`}
       >
-        <div className="max-w-7xl mx-auto h-full animate-fade-in">
+        <div className={`${isMobile ? '' : 'max-w-7xl'} mx-auto h-full animate-fade-in`}>
           {children}
         </div>
       </main>

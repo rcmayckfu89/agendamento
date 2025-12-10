@@ -193,42 +193,46 @@ export const Patients: React.FC = () => {
 
     return (
         <div className="flex flex-col h-full relative animate-slide-in-up">
-            <header className="flex justify-between items-center mb-10">
+            {/* Header - responsive */}
+            <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 md:mb-10">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-foreground">Pacientes</h2>
-                    <p className="text-muted-foreground mt-1">Gerencie as informações dos seus pacientes.</p>
+                    <h2 className="text-xl md:text-3xl font-bold tracking-tight text-foreground">Pacientes</h2>
+                    <p className="text-sm text-muted-foreground mt-1 hidden sm:block">Gerencie as informações dos seus pacientes.</p>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 md:gap-4 w-full sm:w-auto">
                     <button
                         onClick={handleOpenCreate}
-                        className="bg-primary text-primary-foreground font-semibold py-2.5 px-5 rounded-lg flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-soft"
+                        className="flex-1 sm:flex-none bg-primary text-primary-foreground font-semibold py-2 md:py-2.5 px-4 md:px-5 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors shadow-soft text-sm md:text-base"
                     >
                         <span className="material-symbols-outlined">person_add</span>
-                        Novo Paciente
+                        <span className="hidden sm:inline">Novo Paciente</span>
+                        <span className="sm:hidden">Novo</span>
                     </button>
                 </div>
             </header>
 
-            <div className="mb-6">
-                <div className="flex items-center gap-4">
+            {/* Search Bar - responsive */}
+            <div className="mb-4 md:mb-6">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 md:gap-4">
                     <div className="relative flex-1">
-                        <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">search</span>
+                        <span className="material-symbols-outlined absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-lg md:text-xl">search</span>
                         <input
                             type="text"
-                            placeholder="Pesquisar por nome, CPF/CNS ou contato..."
+                            placeholder="Pesquisar nome, CPF ou contato..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 bg-card border border-border rounded-lg shadow-soft focus:ring-2 focus:ring-primary focus:outline-none transition-shadow"
+                            className="w-full pl-10 md:pl-12 pr-4 py-2 md:py-3 bg-card border border-border rounded-lg shadow-soft focus:ring-2 focus:ring-primary focus:outline-none transition-shadow text-sm md:text-base"
                         />
                     </div>
-                    <button className="bg-card text-secondary-foreground font-medium py-3 px-5 rounded-lg flex items-center gap-2 hover:bg-secondary transition-colors border border-border shadow-soft">
+                    <button className="hidden sm:flex bg-card text-secondary-foreground font-medium py-2 md:py-3 px-4 md:px-5 rounded-lg items-center gap-2 hover:bg-secondary transition-colors border border-border shadow-soft text-sm md:text-base">
                         <span className="material-symbols-outlined">filter_list</span>
                         Filtros
                     </button>
                 </div>
             </div>
 
-            <div className="bg-card border border-border rounded-xl shadow-soft-lg flex-1 overflow-y-auto">
+            {/* Desktop Table View - hidden on mobile */}
+            <div className="hidden md:block bg-card border border-border rounded-xl shadow-soft-lg flex-1 overflow-y-auto">
                 <table className="w-full text-left">
                     <thead className="bg-secondary/50 sticky top-0 z-10">
                         <tr>
@@ -296,6 +300,57 @@ export const Patients: React.FC = () => {
                         )}
                     </tbody>
                 </table>
+            </div>
+
+            {/* Mobile Card View - shown only on mobile */}
+            <div className="md:hidden flex-1 overflow-y-auto space-y-3">
+                {filteredPatients.length > 0 ? (
+                    filteredPatients.map((patient) => (
+                        <div key={patient.id} className="bg-card border border-border rounded-xl p-4 shadow-soft">
+                            <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold shrink-0 ${getAvatarStyle(patient.color || 'primary')}`}>
+                                        <span>{patient.initials || '?'}</span>
+                                    </div>
+                                    <div>
+                                        <div className="font-semibold text-foreground">{patient.name}</div>
+                                        <div className="text-xs text-muted-foreground">{patient.phone || 'Sem telefone'}</div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        onClick={() => handleOpenEdit(patient)}
+                                        className="p-1.5 rounded hover:bg-accent text-muted-foreground"
+                                    >
+                                        <span className="material-symbols-outlined text-lg">edit</span>
+                                    </button>
+                                    <button
+                                        onClick={() => handleOpenDelete(patient.id)}
+                                        className="p-1.5 rounded hover:bg-destructive/10 text-destructive"
+                                    >
+                                        <span className="material-symbols-outlined text-lg">delete</span>
+                                    </button>
+                                </div>
+                            </div>
+                            {/* Tags */}
+                            <div className="flex flex-wrap gap-1 mt-2">
+                                {(patient.comorbidities || []).slice(0, 3).map((c, i) => (
+                                    <span key={i} className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${c.includes('HIPERDIA') ? 'bg-orange-100 text-orange-800' : c.includes('PRÉ-NATAL') ? 'bg-pink-100 text-pink-800' : 'bg-secondary text-secondary-foreground'}`}>
+                                        {c}
+                                    </span>
+                                ))}
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-2">
+                                <span>Doc: {patient.cpfOrCns || 'N/A'}</span>
+                                {patient.health_agent && <span> • ACS: {patient.health_agent}</span>}
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    <div className="text-center text-muted-foreground py-8">
+                        Nenhum paciente encontrado.
+                    </div>
+                )}
             </div>
 
             {/* Modal de Cadastro/Edição */}

@@ -100,48 +100,52 @@ export const Dashboard: React.FC = () => {
 
     return (
         <div className="flex flex-col h-full relative">
-            <header className="flex justify-between items-center mb-10">
+            {/* Header - responsive */}
+            <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:mb-10">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-foreground">Visão Geral</h2>
-                    <p className="text-muted-foreground mt-1">Resumo dos seus atendimentos para hoje.</p>
+                    <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Visão Geral</h2>
+                    <p className="text-sm md:text-base text-muted-foreground mt-1">Resumo dos seus atendimentos para hoje.</p>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 md:gap-4 w-full sm:w-auto">
                     <button
                         onClick={() => navigate('/agenda')}
-                        className="bg-primary text-primary-foreground font-semibold py-2.5 px-5 rounded-lg flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-soft"
+                        className="flex-1 sm:flex-none bg-primary text-primary-foreground font-semibold py-2 md:py-2.5 px-3 md:px-5 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors shadow-soft text-sm md:text-base"
                     >
-                        <span className="material-symbols-outlined">event</span>
-                        Abrir Agenda
+                        <span className="material-symbols-outlined text-xl md:text-2xl">event</span>
+                        <span className="hidden sm:inline">Abrir Agenda</span>
+                        <span className="sm:hidden">Agenda</span>
                     </button>
                     <button
                         onClick={() => navigate('/patients')}
-                        className="bg-card text-secondary-foreground font-semibold py-2.5 px-5 rounded-lg flex items-center gap-2 hover:bg-secondary transition-colors border border-border shadow-soft"
+                        className="flex-1 sm:flex-none bg-card text-secondary-foreground font-semibold py-2 md:py-2.5 px-3 md:px-5 rounded-lg flex items-center justify-center gap-2 hover:bg-secondary transition-colors border border-border shadow-soft text-sm md:text-base"
                     >
-                        <span className="material-symbols-outlined">visibility</span>
-                        Ver Pacientes
+                        <span className="material-symbols-outlined text-xl md:text-2xl">visibility</span>
+                        <span className="hidden sm:inline">Ver Pacientes</span>
+                        <span className="sm:hidden">Pacientes</span>
                     </button>
                 </div>
             </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+            {/* Stats Grid - responsive: 2 cols on mobile, 4 on desktop */}
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-10">
                 {stats.map((stat) => (
                     <StatCard key={stat.category} data={stat} />
                 ))}
             </div>
 
-            <div className="flex-1 overflow-y-auto pr-2">
-                <h3 className="text-2xl font-bold mb-6 tracking-tight text-foreground">Próximos Atendimentos (Hoje)</h3>
-                <p className="text-sm text-muted-foreground mb-4 -mt-4">Clique no paciente para alterar o status do atendimento.</p>
+            <div className="flex-1 overflow-y-auto pr-0 md:pr-2">
+                <h3 className="text-lg md:text-2xl font-bold mb-4 md:mb-6 tracking-tight text-foreground">Próximos Atendimentos</h3>
+                <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4 -mt-2 md:-mt-4">Toque para alterar o status.</p>
 
-                <div className="space-y-6">
+                <div className="space-y-4 md:space-y-6">
                     {/* Doctor Section */}
                     <div className="flex items-start">
-                        <div className="flex flex-col items-center mr-6 h-full">
-                            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-violet-100 border-4 border-violet-50 shrink-0">
-                                <span className="material-symbols-outlined text-violet-600">medical_services</span>
+                        <div className="flex flex-col items-center mr-3 md:mr-6 h-full">
+                            <div className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full bg-violet-100 border-2 md:border-4 border-violet-50 shrink-0">
+                                <span className="material-symbols-outlined text-violet-600 text-lg md:text-2xl">medical_services</span>
                             </div>
                         </div>
-                        <div className="pb-4 flex-1">
+                        <div className="pb-3 md:pb-4 flex-1 min-w-0">
                             <h4 className="font-semibold text-lg text-foreground mb-3">Médico</h4>
                             <div className="space-y-3">
                                 {getNextForRole('Médico').length > 0 ? (

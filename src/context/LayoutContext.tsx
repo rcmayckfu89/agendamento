@@ -5,20 +5,66 @@ interface LayoutContextType {
     isSidebarCollapsed: boolean;
     toggleSidebar: () => void;
     setSidebarCollapsed: (value: boolean) => void;
+    // Mobile-specific
+    isMobile: boolean;
+    isMobileMenuOpen: boolean;
+    toggleMobileMenu: () => void;
+    closeMobileMenu: () => void;
 }
 
 const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
 
 export const LayoutProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    // Default to true as requested: "recolhido sempre que entrar"
+    // Desktop sidebar state - default to collapsed
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+
+    // Mobile-specific state
+    const [isMobile, setIsMobile] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    // Detect screen size
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768); // md breakpoint
+        };
+
+        // Initial check
+        checkMobile();
+
+        // Listen for resize
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
+    // Close mobile menu on resize to desktop
+    useEffect(() => {
+        if (!isMobile) {
+            setIsMobileMenuOpen(false);
+        }
+    }, [isMobile]);
 
     const toggleSidebar = () => {
         setIsSidebarCollapsed(prev => !prev);
     };
 
+    const toggleMobileMenu = () => {
+        setIsMobileMenuOpen(prev => !prev);
+    };
+
+    const closeMobileMenu = () => {
+        setIsMobileMenuOpen(false);
+    };
+
     return (
-        <LayoutContext.Provider value={{ isSidebarCollapsed, toggleSidebar, setSidebarCollapsed: setIsSidebarCollapsed }}>
+        <LayoutContext.Provider value={{
+            isSidebarCollapsed,
+            toggleSidebar,
+            setSidebarCollapsed: setIsSidebarCollapsed,
+            isMobile,
+            isMobileMenuOpen,
+            toggleMobileMenu,
+            closeMobileMenu
+        }}>
             {children}
         </LayoutContext.Provider>
     );
