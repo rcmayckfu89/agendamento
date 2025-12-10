@@ -1,11 +1,17 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Appointment, ServiceType } from '../types';
 import { daysOfWeek, weekDaySlugs } from '../constants/weekConfig';
 
 export const Agenda: React.FC = () => {
     const { professionals, patients, appointments, addAppointment, deleteAppointment, blockedDays } = useApp();
+
+    // Mount/Unmount logging for debugging
+    useEffect(() => {
+        console.log('🟢 [Agenda] Mounted');
+        return () => console.log('🔴 [Agenda] Unmounted');
+    }, []);
 
     // UI State
     const [currentDate, setCurrentDate] = useState(new Date());

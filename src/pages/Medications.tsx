@@ -1,8 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Medication, Patient } from '../types';
 import { medicationService } from '../services/medicationService';
 import { patientService } from '../services/patientService';
+import { useDebounce } from '../hooks/useDebounce';
 
 export const Medications: React.FC = () => {
     const [medications, setMedications] = useState<Medication[]>([]);
@@ -10,6 +11,12 @@ export const Medications: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Mount/Unmount logging for debugging
+    useEffect(() => {
+        console.log('🟢 [Medications] Mounted');
+        return () => console.log('🔴 [Medications] Unmounted');
+    }, []);
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -27,10 +34,55 @@ export const Medications: React.FC = () => {
     });
 
     useEffect(() => {
+        let isMounted = true;
+
+        const loadData = async () => {
+            try {
+                setIsLoading(true);
+                const [medsData, patientsData] = await Promise.all([
+                    medicationService.getAll(),
+                    patientService.getAll()
+                ]);
+
+                // Only update state if component is still mounted
+                if (isMounted) {
+                    setMedications(medsData);
+                    setPatients(patientsData);
+                    setError(null);
+                }
+            } catch (err) {
+                if (isMounted) {
+                    setError(err instanceof Error ? err.message : 'Erro ao carregar dados');
+                }
+            } finally {
+                if (isMounted) {
+                    setIsLoading(false);
+                }
+            }
+        };
+
         loadData();
+
+        // Cleanup: prevent state updates on unmounted component
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
-    const loadData = async () => {
+    // Debounce search for performance
+    const debouncedSearch = useDebounce(searchTerm, 300);
+
+    // Memoize filtered medications
+    const filteredMedications = useMemo(() =>
+        medications.filter(med =>
+            (med.patientName || '').toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+            (med.name || '').toLowerCase().includes(debouncedSearch.toLowerCase())
+        ),
+        [medications, debouncedSearch]
+    );
+
+    // Memoize reload function
+    const loadData = useCallback(async () => {
         try {
             setIsLoading(true);
             const [medsData, patientsData] = await Promise.all([
@@ -45,12 +97,7 @@ export const Medications: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    };
-
-    const filteredMedications = medications.filter(med =>
-        (med.patientName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (med.name || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    }, []);
 
     const handleOpenCreate = () => {
         setFormData({

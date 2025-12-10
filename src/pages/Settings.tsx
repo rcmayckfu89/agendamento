@@ -15,6 +15,12 @@ export const Settings: React.FC = () => {
         blockedDays, addBlockedDay, removeBlockedDay
     } = useApp();
 
+    // Mount/Unmount logging for debugging
+    useEffect(() => {
+        console.log('🟢 [Settings] Mounted');
+        return () => console.log('🔴 [Settings] Unmounted');
+    }, []);
+
     const [isProfModalOpen, setIsProfModalOpen] = useState(false);
     const [editingProfId, setEditingProfId] = useState<string | null>(null);
 

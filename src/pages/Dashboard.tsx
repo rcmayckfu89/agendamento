@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StatCard } from '../components/features/StatCard';
 import { StatData, Appointment } from '../types';
@@ -8,6 +8,12 @@ import { useApp } from '../context/AppContext';
 export const Dashboard: React.FC = () => {
     const navigate = useNavigate();
     const { appointments, professionals, updateAppointment } = useApp();
+
+    // Mount/Unmount logging for debugging
+    useEffect(() => {
+        console.log('🟢 [Dashboard] Mounted');
+        return () => console.log('🔴 [Dashboard] Unmounted');
+    }, []);
 
     // State for Interaction Modal
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);

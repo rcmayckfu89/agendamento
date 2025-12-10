@@ -1,23 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import { HistoryItem } from '../types';
+import { useDebounce } from '../hooks/useDebounce';
 
 export const History: React.FC = () => {
     const { appointments, professionals } = useApp();
 
-    // Convert appointments to History Items dynamically
-    const historyData: HistoryItem[] = appointments
-        .filter(a => ['finished', 'canceled', 'no_show'].includes(a.status))
-        .map(a => ({
-            id: a.id,
-            time: a.time,
-            period: parseInt(a.time.split(':')[0]) < 12 ? 'AM' : 'PM',
-            patientName: a.patientName || 'Paciente Desconhecido',
-            description: `${a.type} com ${a.professionalName}`,
-            status: a.status as 'finished' | 'canceled' | 'no_show',
-            professional: a.professionalName || 'Profissional'
-        }))
-        .sort((a, b) => b.time.localeCompare(a.time));
+    // Mount/Unmount logging for debugging
+    useEffect(() => {
+        console.log('🟢 [History] Mounted');
+        return () => console.log('🔴 [History] Unmounted');
+    }, []);
+
+    // Convert appointments to History Items dynamically - MEMOIZED to avoid re-render loops
+    const historyData: HistoryItem[] = useMemo(() =>
+        appointments
+            .filter(a => ['finished', 'canceled', 'no_show'].includes(a.status))
+            .map(a => ({
+                id: a.id,
+                time: a.time,
+                period: parseInt(a.time.split(':')[0]) < 12 ? 'AM' : 'PM',
+                patientName: a.patientName || 'Paciente Desconhecido',
+                description: `${a.type} com ${a.professionalName}`,
+                status: a.status as 'finished' | 'canceled' | 'no_show',
+                professional: a.professionalName || 'Profissional'
+            }))
+            .sort((a, b) => b.time.localeCompare(a.time)),
+        [appointments]
+    );
 
     const [filters, setFilters] = useState({
         date: new Date().toISOString().split('T')[0],
@@ -30,38 +40,29 @@ export const History: React.FC = () => {
     const [filteredData, setFilteredData] = useState<HistoryItem[]>([]);
     const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
-    // Filter Logic
-    useEffect(() => {
-        // Filter from the global historyData derived from context
-        const result = historyData.filter(item => {
-            // Note: In a real app we would filter by date, but since we are mapping all appointments,
-            // we might want to check if the appointment date matches the filter date.
-            // However, HistoryItem doesn't strictly carry the date property in the type defined in types.ts
-            // Assuming for this view we just show "History of the Day" (as title says) or allow filtering all.
-            // Let's match strictly against 'appointments' date for the filter to work correctly.
-            // We need to look up the original appointment date.
+    // Debounce search to avoid excessive filtering
+    const debouncedSearch = useDebounce(filters.search, 300);
 
+    // Filter Logic - Now with debounced search and stable dependencies
+    useEffect(() => {
+        const result = historyData.filter(item => {
             const originalAppt = appointments.find(a => a.id === item.id);
             if (!originalAppt) return false;
 
             const matchDate = !filters.date || originalAppt.date === filters.date;
-            // The item.professional holds the name, but our filter logic might be better using IDs if possible.
-            // But since the dropdown below will use names (simplest for now), we match names.
             const matchProfessional = filters.professional === 'Todos' || item.professional === filters.professional;
-            const matchSearch = filters.search === '' || item.patientName.toLowerCase().includes(filters.search.toLowerCase());
+            const matchSearch = debouncedSearch === '' || item.patientName.toLowerCase().includes(debouncedSearch.toLowerCase());
             const matchStatus = filters.status === '' || item.status === filters.status;
-
-            // Loose type matching
             const matchType = filters.type === '' || item.description.toLowerCase().includes(filters.type.toLowerCase());
 
             return matchDate && matchProfessional && matchSearch && matchStatus && matchType;
         });
         setFilteredData(result);
-    }, [filters, appointments, historyData]); // Added historyData to dependency
+    }, [filters.date, filters.professional, debouncedSearch, filters.status, filters.type, historyData, appointments]);
 
-    const handleFilterChange = (key: string, value: string) => {
+    const handleFilterChange = useCallback((key: string, value: string) => {
         setFilters(prev => ({ ...prev, [key]: value }));
-    };
+    }, []);
 
     const handleDeleteRequest = (id: string, e: React.MouseEvent) => {
         e.preventDefault();

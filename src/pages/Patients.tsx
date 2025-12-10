@@ -1,12 +1,19 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Patient } from '../types';
 import { useApp } from '../context/AppContext';
 import { healthConditionsList } from '../constants/healthConditions';
+import { useDebounce } from '../hooks/useDebounce';
 
 export const Patients: React.FC = () => {
     const { patients, addPatient, updatePatient, deletePatient, isLoading, error } = useApp();
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Mount/Unmount logging for debugging
+    useEffect(() => {
+        console.log('🟢 [Patients] Mounted');
+        return () => console.log('🔴 [Patients] Unmounted');
+    }, []);
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -24,11 +31,18 @@ export const Patients: React.FC = () => {
         comorbidities: [] as string[]
     });
 
-    const filteredPatients = patients.filter(patient =>
-        (patient.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (patient.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (patient.phone || '').includes(searchTerm) ||
-        (patient.cpfOrCns || '').includes(searchTerm)
+    // Debounce search for better performance
+    const debouncedSearch = useDebounce(searchTerm, 300);
+
+    // Memoize filtered patients to avoid re-calculating on every render
+    const filteredPatients = useMemo(() =>
+        patients.filter(patient =>
+            (patient.name || '').toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+            (patient.email || '').toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+            (patient.phone || '').includes(debouncedSearch) ||
+            (patient.cpfOrCns || '').includes(debouncedSearch)
+        ),
+        [patients, debouncedSearch]
     );
 
     const getAvatarStyle = (color: string) => {
