@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { StatCard } from '../components/features/StatCard';
 import { StatData, Appointment } from '../types';
@@ -15,25 +15,73 @@ export const Dashboard: React.FC = () => {
         return () => console.log('🔴 [Dashboard] Unmounted');
     }, []);
 
+    // State for Date Navigation
+    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+    const datePickerRef = useRef<HTMLDivElement>(null);
+
     // State for Interaction Modal
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // Calculate stats based on real data
-    const stats: StatData[] = useMemo(() => {
-        const today = new Date().toISOString().split('T')[0];
-        // Count Completed for historical stats, and Scheduled for "current load"
-        const todayAppts = appointments.filter(a => a.date === today && a.status !== 'canceled');
+    // Close date picker when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
+                setIsDatePickerOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
-        // Helper to count by role
+    // Date helpers
+    const formatDateString = (date: Date) => date.toISOString().split('T')[0];
+    const todayStr = formatDateString(new Date());
+    const selectedDateStr = formatDateString(selectedDate);
+    const isToday = selectedDateStr === todayStr;
+
+    const isYesterday = () => {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        return selectedDateStr === formatDateString(yesterday);
+    };
+
+    const isTomorrow = () => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return selectedDateStr === formatDateString(tomorrow);
+    };
+
+    const getDateLabel = () => {
+        if (isToday) return 'Hoje';
+        if (isYesterday()) return 'Ontem';
+        if (isTomorrow()) return 'Amanhã';
+        return selectedDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+    };
+
+    const navigateDate = (days: number) => {
+        const newDate = new Date(selectedDate);
+        newDate.setDate(newDate.getDate() + days);
+        setSelectedDate(newDate);
+    };
+
+    const goToToday = () => {
+        setSelectedDate(new Date());
+        setIsDatePickerOpen(false);
+    };
+
+    // Calculate stats based on selected date
+    const stats: StatData[] = useMemo(() => {
+        const dateAppts = appointments.filter(a => a.date === selectedDateStr && a.status !== 'canceled');
+
         const countByRole = (role: string) => {
-            return todayAppts.filter(a => {
+            return dateAppts.filter(a => {
                 const prof = professionals.find(p => p.id === a.professional_id);
                 return prof?.role === role;
             }).length;
         };
 
-        // Total capacity estimation (simplistic: 10 per day per professional for demo)
         const totalDocs = professionals.filter(p => p.role === 'medico').length * 10;
         const totalNurses = professionals.filter(p => p.role === 'enfermeiro').length * 10;
         const totalTechs = professionals.filter(p => p.role === 'tecnico').length * 10;
@@ -42,37 +90,28 @@ export const Dashboard: React.FC = () => {
         const currentNurses = countByRole('enfermeiro');
         const currentTechs = countByRole('tecnico');
 
-        // Count "Urgent" (DEMANDA ESPONTÂNEA)
-        const urgentCount = todayAppts.filter(a => a.type === 'DEMANDA ESPONTÂNEA').length;
+        const urgentCount = dateAppts.filter(a => a.type === 'DEMANDA ESPONTÂNEA').length;
 
-        // Note: Labels mapped from english roles to portuguese display if needed, but keeping categories as keys
+        const dayLabel = isToday ? 'agendados hoje' : `em ${getDateLabel().toLowerCase()}`;
+
         return [
-            { category: 'Doctor', current: currentDocs, total: Math.max(currentDocs, totalDocs || 10), label: 'agendados hoje', icon: 'medical_services', colorClass: 'violet', ringColorClass: 'text-violet-500' },
-            { category: 'Nurse', current: currentNurses, total: Math.max(currentNurses, totalNurses || 10), label: 'agendados hoje', icon: 'health_and_safety', colorClass: 'green', ringColorClass: 'text-green-500' },
-            { category: 'Technician', current: currentTechs, total: Math.max(currentTechs, totalTechs || 10), label: 'agendados hoje', icon: 'biotech', colorClass: 'sky', ringColorClass: 'text-sky-500' },
+            { category: 'Doctor', current: currentDocs, total: Math.max(currentDocs, totalDocs || 10), label: dayLabel, icon: 'medical_services', colorClass: 'violet', ringColorClass: 'text-violet-500' },
+            { category: 'Nurse', current: currentNurses, total: Math.max(currentNurses, totalNurses || 10), label: dayLabel, icon: 'health_and_safety', colorClass: 'green', ringColorClass: 'text-green-500' },
+            { category: 'Technician', current: currentTechs, total: Math.max(currentTechs, totalTechs || 10), label: dayLabel, icon: 'biotech', colorClass: 'sky', ringColorClass: 'text-sky-500' },
             { category: 'Urgent', current: urgentCount, total: 10, label: 'demandas espontâneas', icon: 'priority_high', colorClass: 'destructive', ringColorClass: '' },
         ];
-    }, [appointments, professionals]);
+    }, [appointments, professionals, selectedDateStr]);
 
-    // Get next appointments for display
-    // CORREÇÃO: Removemos o filtro de hora (a.time >= now) para que agendamentos atrasados ainda apareçam na lista até serem resolvidos.
-    const nextAppointments = useMemo(() => {
-        const today = new Date().toISOString().split('T')[0];
-
+    // Get appointments for selected date
+    const dateAppointments = useMemo(() => {
         return appointments
-            .filter(a => a.date === today && a.status === 'scheduled')
+            .filter(a => a.date === selectedDateStr && a.status === 'scheduled')
             .sort((a, b) => a.time.localeCompare(b.time));
-    }, [appointments]);
+    }, [appointments, selectedDateStr]);
 
     const getNextForRole = (role: string) => {
-        return nextAppointments.filter(a => {
+        return dateAppointments.filter(a => {
             const prof = professionals.find(p => p.id === a.professional_id);
-            // Verify exact role string from DB ('medico', 'enfermeiro', 'tecnico') vs UI display
-            // UI Cards use 'Doctor', 'Nurse', 'Technician' categories, but here we pass 'Médico' etc?
-            // Let's check how it's called.
-            // It is called with 'Médico', 'Enfermeira', 'Técnica'.
-            // But DB roles are 'medico', 'enfermeiro', 'tecnico'.
-            // Mapping needed.
             const roleMap: Record<string, string> = {
                 'Médico': 'medico',
                 'Enfermeira': 'enfermeiro',
@@ -104,13 +143,137 @@ export const Dashboard: React.FC = () => {
         }
     };
 
+    const emptyMessage = isToday
+        ? 'Agenda livre para'
+        : `Sem agendamentos ${getDateLabel().toLowerCase()} para`;
+
     return (
         <div className="flex flex-col h-full relative">
             {/* Header - responsive */}
             <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:mb-10">
-                <div>
+                <div className="relative">
                     <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Visão Geral</h2>
-                    <p className="text-sm md:text-base text-muted-foreground mt-1">Resumo dos seus atendimentos para hoje.</p>
+                    <div className="flex items-center gap-2 mt-1">
+                        <p className="text-sm md:text-base text-muted-foreground">
+                            Resumo dos seus atendimentos
+                        </p>
+
+                        {/* Date Picker Pill */}
+                        <div ref={datePickerRef} className="relative">
+                            <button
+                                onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+                                className={`
+                                    inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium
+                                    transition-all duration-300 ease-out
+                                    ${isToday
+                                        ? 'bg-primary/10 text-primary hover:bg-primary/20'
+                                        : 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400'
+                                    }
+                                    ${isDatePickerOpen ? 'ring-2 ring-primary/30 shadow-md' : 'hover:shadow-sm'}
+                                `}
+                            >
+                                <span className="material-symbols-outlined text-base">calendar_today</span>
+                                <span>{getDateLabel()}</span>
+                                <span className={`material-symbols-outlined text-base transition-transform duration-300 ${isDatePickerOpen ? 'rotate-180' : ''}`}>
+                                    expand_more
+                                </span>
+                            </button>
+
+                            {/* Expanded Date Navigator */}
+                            <div className={`
+                                absolute top-full left-0 mt-2 z-50
+                                bg-card border border-border rounded-xl shadow-xl
+                                overflow-hidden
+                                transition-all duration-300 ease-out origin-top-left
+                                ${isDatePickerOpen
+                                    ? 'opacity-100 scale-100 translate-y-0'
+                                    : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
+                                }
+                            `}>
+                                <div className="p-3 min-w-[280px]">
+                                    {/* Navigation Row */}
+                                    <div className="flex items-center justify-between mb-3">
+                                        <button
+                                            onClick={() => navigateDate(-1)}
+                                            className="p-2 rounded-lg hover:bg-accent transition-colors"
+                                            title="Dia anterior"
+                                        >
+                                            <span className="material-symbols-outlined">chevron_left</span>
+                                        </button>
+
+                                        <div className="text-center">
+                                            <p className="text-lg font-bold text-foreground">
+                                                {selectedDate.toLocaleDateString('pt-BR', { weekday: 'long' })}
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {selectedDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                            </p>
+                                        </div>
+
+                                        <button
+                                            onClick={() => navigateDate(1)}
+                                            className="p-2 rounded-lg hover:bg-accent transition-colors"
+                                            title="Próximo dia"
+                                        >
+                                            <span className="material-symbols-outlined">chevron_right</span>
+                                        </button>
+                                    </div>
+
+                                    {/* Quick Access Buttons */}
+                                    <div className="grid grid-cols-3 gap-2 mb-3">
+                                        {[-1, 0, 1].map(offset => {
+                                            const date = new Date();
+                                            date.setDate(date.getDate() + offset);
+                                            const dateStr = formatDateString(date);
+                                            const isSelected = selectedDateStr === dateStr;
+                                            const label = offset === -1 ? 'Ontem' : offset === 0 ? 'Hoje' : 'Amanhã';
+
+                                            return (
+                                                <button
+                                                    key={offset}
+                                                    onClick={() => {
+                                                        setSelectedDate(date);
+                                                        setIsDatePickerOpen(false);
+                                                    }}
+                                                    className={`
+                                                        px-3 py-2 rounded-lg text-sm font-medium transition-all
+                                                        ${isSelected
+                                                            ? 'bg-primary text-primary-foreground shadow-md'
+                                                            : 'bg-secondary/50 hover:bg-secondary text-foreground'
+                                                        }
+                                                    `}
+                                                >
+                                                    <span className="block text-xs opacity-70">
+                                                        {date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                                    </span>
+                                                    <span>{label}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Go to Today Button */}
+                                    {!isToday && (
+                                        <button
+                                            onClick={goToToday}
+                                            className="w-full py-2 px-4 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <span className="material-symbols-outlined text-base">today</span>
+                                            Voltar para Hoje
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Visual indicator when not today */}
+                        {!isToday && (
+                            <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 animate-pulse">
+                                <span className="material-symbols-outlined text-sm">history</span>
+                                visualizando outro dia
+                            </span>
+                        )}
+                    </div>
                 </div>
                 <div className="flex items-center gap-2 md:gap-4 w-full sm:w-auto">
                     <button
@@ -140,8 +303,19 @@ export const Dashboard: React.FC = () => {
             </div>
 
             <div className="flex-1 overflow-y-auto pr-0 md:pr-2">
-                <h3 className="text-lg md:text-2xl font-bold mb-4 md:mb-6 tracking-tight text-foreground">Próximos Atendimentos</h3>
-                <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4 -mt-2 md:-mt-4">Toque para alterar o status.</p>
+                <div className="flex items-center gap-3 mb-4 md:mb-6">
+                    <h3 className="text-lg md:text-2xl font-bold tracking-tight text-foreground">
+                        {isToday ? 'Próximos Atendimentos' : `Atendimentos de ${getDateLabel()}`}
+                    </h3>
+                    {!isToday && (
+                        <span className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-1 rounded-full">
+                            {selectedDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                        </span>
+                    )}
+                </div>
+                <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4 -mt-2 md:-mt-4">
+                    {isToday ? 'Toque para alterar o status.' : 'Atendimentos pendentes deste dia.'}
+                </p>
 
                 <div className="space-y-4 md:space-y-6">
                     {/* Doctor Section */}
@@ -173,7 +347,7 @@ export const Dashboard: React.FC = () => {
                                     ))
                                 ) : (
                                     <div className="bg-card border border-border border-dashed rounded-xl p-4 flex justify-center text-muted-foreground text-sm italic">
-                                        Agenda livre para Médicos hoje.
+                                        {emptyMessage} Médicos.
                                     </div>
                                 )}
                             </div>
@@ -209,7 +383,7 @@ export const Dashboard: React.FC = () => {
                                     ))
                                 ) : (
                                     <div className="bg-card border border-border border-dashed rounded-xl p-4 flex justify-center text-muted-foreground text-sm italic">
-                                        Agenda livre para Enfermeiras hoje.
+                                        {emptyMessage} Enfermeiras.
                                     </div>
                                 )}
                             </div>
@@ -245,7 +419,7 @@ export const Dashboard: React.FC = () => {
                                     ))
                                 ) : (
                                     <div className="bg-card border border-border border-dashed rounded-xl p-4 flex justify-center text-muted-foreground text-sm italic">
-                                        Agenda livre para Técnicas hoje.
+                                        {emptyMessage} Técnicas.
                                     </div>
                                 )}
                             </div>
