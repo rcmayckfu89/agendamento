@@ -387,7 +387,7 @@ export const Medications: React.FC = () => {
                 {filteredMedications.length > 0 ? (
                     filteredMedications.map((medication) => {
                         const priorityBadge = getPriorityBadge(medication.priority);
-                        const renewalAlert = getRenewalAlert(medication.daysUntilRenewal);
+                        const renewalStatus = getRenewalStatus(medication.daysUntilRenewal);
                         return (
                             <div key={medication.id} className="bg-card border border-border rounded-xl p-4 shadow-soft">
                                 <div className="flex items-start justify-between">
@@ -411,11 +411,11 @@ export const Medications: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="flex flex-wrap items-center gap-2 mt-2">
-                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${priorityBadge.bgColor} ${priorityBadge.textColor}`}>
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${priorityBadge}`}>
                                         {medication.priority}
                                     </span>
-                                    <span className={`text-xs ${renewalAlert.color}`}>
-                                        {renewalAlert.text}
+                                    <span className={`text-xs ${renewalStatus.color}`}>
+                                        {renewalStatus.text}
                                     </span>
                                 </div>
                             </div>

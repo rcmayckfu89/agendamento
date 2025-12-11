@@ -89,6 +89,12 @@ export const Dashboard: React.FC = () => {
 
     const updateStatus = (status: 'finished' | 'no_show' | 'canceled') => {
         if (selectedAppointment) {
+            console.log('📝 [Dashboard] Atualizando status do agendamento:', {
+                id: selectedAppointment.id,
+                paciente: selectedAppointment.patientName,
+                status: status,
+                data: selectedAppointment.date
+            });
             updateAppointment({
                 ...selectedAppointment,
                 status: status

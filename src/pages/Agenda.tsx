@@ -100,7 +100,7 @@ export const Agenda: React.FC = () => {
             a.professional_id === profId &&
             a.date === dateStr &&
             a.time === timeStr &&
-            a.status !== 'cancelled'
+            a.status !== 'canceled'
         );
 
         if (collision) {
@@ -186,7 +186,7 @@ export const Agenda: React.FC = () => {
     const getAppointmentsForDay = (date: Date) => {
         const dateStr = date.toISOString().split('T')[0];
         return appointments
-            .filter(a => a.date === dateStr && a.professional_id === selectedProfId && a.status !== 'cancelled')
+            .filter(a => a.date === dateStr && a.professional_id === selectedProfId && a.status !== 'canceled')
             .sort((a, b) => a.time.localeCompare(b.time));
     };
 

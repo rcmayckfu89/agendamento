@@ -205,7 +205,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const updateAppointment = async (appointment: Partial<Appointment>) => {
         if (!appointment.id) return;
         try {
+            console.log('🔄 [AppContext] Iniciando atualização de agendamento:', appointment);
             const updatedData = await appointmentService.update(appointment.id, appointment);
+            console.log('✅ [AppContext] Agendamento atualizado no banco:', updatedData);
 
             setAppointments(prev => prev.map(a => {
                 if (a.id === appointment.id) {
@@ -215,7 +217,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                     const professionalObj = professionals.find(p => p.id === updatedData.professional_id) || a.professional; // Keep existing if not found? No, should be found.
 
                     // If logic is complex, just merging `a` and `updatedData` usually works for simple fields
-                    return {
+                    const updated = {
                         ...a,
                         ...updatedData,
                         status: updatedData.status, // Ensure status enum is correct
@@ -226,12 +228,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                         patientName: patients.find(p => p.id === updatedData.patient_id)?.name || a.patientName,
                         professionalName: professionals.find(p => p.id === updatedData.professional_id)?.name || professionals.find(p => p.id === updatedData.professional_id)?.email || a.professionalName
                     };
+                    console.log('🔄 [AppContext] Agendamento atualizado no state local:', updated);
+                    return updated;
                 }
                 return a;
             }));
 
         } catch (err: any) {
-            console.error(err);
+            console.error('❌ [AppContext] Erro ao atualizar agendamento:', err);
             throw err;
         }
     };

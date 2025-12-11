@@ -13,8 +13,8 @@ export const History: React.FC = () => {
     }, []);
 
     // Convert appointments to History Items dynamically - MEMOIZED to avoid re-render loops
-    const historyData: HistoryItem[] = useMemo(() =>
-        appointments
+    const historyData: HistoryItem[] = useMemo(() => {
+        const filtered = appointments
             .filter(a => ['finished', 'canceled', 'no_show'].includes(a.status))
             .map(a => ({
                 id: a.id,
@@ -25,12 +25,19 @@ export const History: React.FC = () => {
                 status: a.status as 'finished' | 'canceled' | 'no_show',
                 professional: a.professionalName || 'Profissional'
             }))
-            .sort((a, b) => b.time.localeCompare(a.time)),
+            .sort((a, b) => b.time.localeCompare(a.time));
+
+        console.log('📊 [History] Total de agendamentos:', appointments.length);
+        console.log('📊 [History] Histórico filtrado:', filtered.length, 'itens');
+        console.log('📊 [History] Status dos agendamentos:', appointments.map(a => ({ id: a.id, status: a.status, date: a.date })));
+
+        return filtered;
+    },
         [appointments]
     );
 
     const [filters, setFilters] = useState({
-        date: new Date().toISOString().split('T')[0],
+        date: '', // Removido filtro padrão - mostra TODOS os atendimentos finalizados
         professional: 'Todos',
         search: '',
         status: '',
@@ -49,7 +56,8 @@ export const History: React.FC = () => {
             const originalAppt = appointments.find(a => a.id === item.id);
             if (!originalAppt) return false;
 
-            const matchDate = !filters.date || originalAppt.date === filters.date;
+            // Se filters.date estiver vazio, mostra TODAS as datas
+            const matchDate = filters.date === '' || originalAppt.date === filters.date;
             const matchProfessional = filters.professional === 'Todos' || item.professional === filters.professional;
             const matchSearch = debouncedSearch === '' || item.patientName.toLowerCase().includes(debouncedSearch.toLowerCase());
             const matchStatus = filters.status === '' || item.status === filters.status;
@@ -57,6 +65,10 @@ export const History: React.FC = () => {
 
             return matchDate && matchProfessional && matchSearch && matchStatus && matchType;
         });
+
+        console.log('🔍 [History] Filtros aplicados:', filters);
+        console.log('🔍 [History] Resultados após filtro:', result.length);
+
         setFilteredData(result);
     }, [filters.date, filters.professional, debouncedSearch, filters.status, filters.type, historyData, appointments]);
 
@@ -106,9 +118,13 @@ export const History: React.FC = () => {
                                 id="date-filter"
                                 value={filters.date}
                                 onChange={(e) => handleFilterChange('date', e.target.value)}
+                                placeholder="Todas as datas"
                                 className="w-full pl-10 pr-3 py-2 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
                             />
                         </div>
+                        {filters.date === '' && (
+                            <p className="text-xs text-muted-foreground mt-1">📅 Mostrando todos os registros</p>
+                        )}
                     </div>
                     <div>
                         <label htmlFor="professional-filter" className="block text-sm font-medium text-muted-foreground mb-1">Profissional</label>
