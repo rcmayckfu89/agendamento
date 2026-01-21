@@ -107,8 +107,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     // ============================================
     // AUTO-CLOSE: Encerramento automático às 00:01
     // ============================================
+    const autoCloseExecutedRef = React.useRef(false);
+
     useEffect(() => {
         if (!session) return;
+
+        // Evitar execução múltipla
+        if (autoCloseExecutedRef.current) return;
 
         const autoCloseYesterdayAppointments = async () => {
             const yesterday = new Date();
@@ -121,6 +126,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
             if (pendingAppointments.length > 0) {
                 console.log(`🔒 [Auto-Close] Encerrando ${pendingAppointments.length} agendamentos de ${yesterdayStr}`);
+                autoCloseExecutedRef.current = true; // Marcar como executado ANTES de fazer as atualizações
 
                 for (const app of pendingAppointments) {
                     try {
@@ -151,17 +157,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             console.log(`⏰ [Auto-Close] Próxima verificação em ${Math.round(msUntilMidnight / 1000 / 60)} minutos`);
 
             return setTimeout(() => {
+                autoCloseExecutedRef.current = false; // Reset para permitir nova execução
                 autoCloseYesterdayAppointments();
                 scheduleAutoClose(); // Reagendar para o próximo dia
             }, msUntilMidnight);
         };
 
-        // Verificar ao montar se há agendamentos pendentes do dia anterior
-        autoCloseYesterdayAppointments();
+        // Verificar ao montar se há agendamentos pendentes do dia anterior (apenas se houver appointments carregados)
+        if (appointments.length > 0) {
+            autoCloseYesterdayAppointments();
+        }
 
         const timerId = scheduleAutoClose();
         return () => clearTimeout(timerId);
-    }, [session, appointments.length]); // Re-executar apenas quando appointments.length muda
+    }, [session]); // Remover appointments.length da dependência para evitar loop
 
     // Actions - Patients
     const addPatient = async (patient: Partial<Patient>) => {
