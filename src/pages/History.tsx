@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
-import { HistoryItem } from '../types';
+import { HistoryItem, AppointmentStatus } from '../types';
 import { useDebounce } from '../hooks/useDebounce';
 
 export const History: React.FC = () => {
-    const { appointments, professionals } = useApp();
+    const { appointments, professionals, updateAppointment } = useApp();
+
+    // State for edit status modal
+    const [editingItem, setEditingItem] = useState<HistoryItem | null>(null);
 
     // Mount/Unmount logging for debugging
     useEffect(() => {
@@ -15,7 +18,7 @@ export const History: React.FC = () => {
     // Convert appointments to History Items dynamically - MEMOIZED to avoid re-render loops
     const historyData: HistoryItem[] = useMemo(() => {
         const filtered = appointments
-            .filter(a => ['finished', 'canceled', 'no_show'].includes(a.status))
+            .filter(a => ['finished', 'canceled', 'no_show', 'auto_closed'].includes(a.status as string))
             .map(a => ({
                 id: a.id,
                 time: a.time,
@@ -174,6 +177,7 @@ export const History: React.FC = () => {
                                 <option value="finished">Concluído</option>
                                 <option value="no_show">Paciente Faltou</option>
                                 <option value="canceled">Cancelado</option>
+                                <option value="auto_closed">Encerrado Automaticamente</option>
                             </select>
                             <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">expand_more</span>
                         </div>
@@ -215,7 +219,7 @@ export const History: React.FC = () => {
                     </div>
                 ) : (
                     filteredData.map((item) => (
-                        <a key={item.id} href="#" onClick={(e) => e.preventDefault()} className="block bg-card p-4 rounded-xl border border-border shadow-soft hover:shadow-soft-lg hover:border-primary transition-all duration-300 transform hover:-translate-y-1">
+                        <a key={item.id} href="#" onClick={(e) => { e.preventDefault(); setEditingItem(item); }} className="block bg-card p-4 rounded-xl border border-border shadow-soft hover:shadow-soft-lg hover:border-primary transition-all duration-300 transform hover:-translate-y-1 cursor-pointer">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-4">
                                     <div className="flex flex-col items-center justify-center w-16 text-center">
@@ -239,6 +243,11 @@ export const History: React.FC = () => {
                                         <div className="flex items-center gap-2 text-sm text-red-600 bg-red-100/60 px-3 py-1 rounded-full font-medium">
                                             <span className="material-symbols-outlined text-base">cancel</span>
                                             Cancelado
+                                        </div>
+                                    ) : item.status === 'auto_closed' ? (
+                                        <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-100/60 px-3 py-1 rounded-full font-medium">
+                                            <span className="material-symbols-outlined text-base">schedule</span>
+                                            Enc. Automaticamente
                                         </div>
                                     ) : (
                                         <div className="flex items-center gap-2 text-sm text-orange-600 bg-orange-100/60 px-3 py-1 rounded-full font-medium">
@@ -291,6 +300,76 @@ export const History: React.FC = () => {
                                     Excluir Registro
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Status Modal */}
+            {editingItem && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-card rounded-xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="px-6 py-4 border-b border-border bg-muted/20">
+                            <h3 className="font-bold text-lg text-foreground">Alterar Status</h3>
+                            <p className="text-sm text-muted-foreground mt-1">
+                                {editingItem.time} - {editingItem.patientName}
+                            </p>
+                        </div>
+                        <div className="p-6 space-y-3">
+                            <button
+                                onClick={async () => {
+                                    const originalAppt = appointments.find(a => a.id === editingItem.id);
+                                    if (originalAppt) {
+                                        await updateAppointment({ ...originalAppt, status: 'finished' });
+                                    }
+                                    setEditingItem(null);
+                                }}
+                                disabled={editingItem.status === 'finished'}
+                                className={`w-full py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors border ${editingItem.status === 'finished' ? 'bg-green-200 border-green-400 text-green-800 cursor-default' : 'bg-green-100 hover:bg-green-200 text-green-800 border-green-200'} font-semibold`}
+                            >
+                                <span className="material-symbols-outlined">check_circle</span>
+                                Finalizado
+                                {editingItem.status === 'finished' && <span className="text-xs">(atual)</span>}
+                            </button>
+
+                            <button
+                                onClick={async () => {
+                                    const originalAppt = appointments.find(a => a.id === editingItem.id);
+                                    if (originalAppt) {
+                                        await updateAppointment({ ...originalAppt, status: 'no_show' });
+                                    }
+                                    setEditingItem(null);
+                                }}
+                                disabled={editingItem.status === 'no_show'}
+                                className={`w-full py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors border ${editingItem.status === 'no_show' ? 'bg-orange-200 border-orange-400 text-orange-800 cursor-default' : 'bg-orange-100 hover:bg-orange-200 text-orange-800 border-orange-200'} font-semibold`}
+                            >
+                                <span className="material-symbols-outlined">person_off</span>
+                                Paciente Faltou
+                                {editingItem.status === 'no_show' && <span className="text-xs">(atual)</span>}
+                            </button>
+
+                            <button
+                                onClick={async () => {
+                                    const originalAppt = appointments.find(a => a.id === editingItem.id);
+                                    if (originalAppt) {
+                                        await updateAppointment({ ...originalAppt, status: 'canceled' });
+                                    }
+                                    setEditingItem(null);
+                                }}
+                                disabled={editingItem.status === 'canceled'}
+                                className={`w-full py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors border ${editingItem.status === 'canceled' ? 'bg-red-200 border-red-400 text-red-800 cursor-default' : 'bg-red-100 hover:bg-red-200 text-red-800 border-red-200'} font-semibold`}
+                            >
+                                <span className="material-symbols-outlined">cancel</span>
+                                Cancelado
+                                {editingItem.status === 'canceled' && <span className="text-xs">(atual)</span>}
+                            </button>
+
+                            <button
+                                onClick={() => setEditingItem(null)}
+                                className="w-full mt-4 text-muted-foreground hover:bg-accent py-2 px-4 rounded-lg text-sm"
+                            >
+                                Voltar / Fechar
+                            </button>
                         </div>
                     </div>
                 </div>

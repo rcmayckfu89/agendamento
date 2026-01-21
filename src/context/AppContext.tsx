@@ -104,6 +104,65 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         refreshData();
     }, [session]);
 
+    // ============================================
+    // AUTO-CLOSE: Encerramento automático às 00:01
+    // ============================================
+    useEffect(() => {
+        if (!session) return;
+
+        const autoCloseYesterdayAppointments = async () => {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+            const pendingAppointments = appointments.filter(
+                a => a.date === yesterdayStr && a.status === 'scheduled'
+            );
+
+            if (pendingAppointments.length > 0) {
+                console.log(`🔒 [Auto-Close] Encerrando ${pendingAppointments.length} agendamentos de ${yesterdayStr}`);
+
+                for (const app of pendingAppointments) {
+                    try {
+                        await appointmentService.update(app.id, { status: 'auto_closed' });
+                        console.log(`✅ [Auto-Close] Agendamento ${app.id} encerrado automaticamente`);
+                    } catch (err) {
+                        console.error(`❌ [Auto-Close] Erro ao encerrar agendamento ${app.id}:`, err);
+                    }
+                }
+
+                // Atualizar lista local após encerramento
+                setAppointments(prev => prev.map(a =>
+                    pendingAppointments.some(p => p.id === a.id)
+                        ? { ...a, status: 'auto_closed' }
+                        : a
+                ));
+            }
+        };
+
+        // Calcular tempo até 00:01 do próximo dia
+        const scheduleAutoClose = () => {
+            const now = new Date();
+            const nextMidnight = new Date(now);
+            nextMidnight.setDate(nextMidnight.getDate() + 1);
+            nextMidnight.setHours(0, 1, 0, 0); // 00:01:00
+
+            const msUntilMidnight = nextMidnight.getTime() - now.getTime();
+            console.log(`⏰ [Auto-Close] Próxima verificação em ${Math.round(msUntilMidnight / 1000 / 60)} minutos`);
+
+            return setTimeout(() => {
+                autoCloseYesterdayAppointments();
+                scheduleAutoClose(); // Reagendar para o próximo dia
+            }, msUntilMidnight);
+        };
+
+        // Verificar ao montar se há agendamentos pendentes do dia anterior
+        autoCloseYesterdayAppointments();
+
+        const timerId = scheduleAutoClose();
+        return () => clearTimeout(timerId);
+    }, [session, appointments.length]); // Re-executar apenas quando appointments.length muda
+
     // Actions - Patients
     const addPatient = async (patient: Partial<Patient>) => {
         try {

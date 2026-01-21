@@ -97,7 +97,7 @@ export const Dashboard: React.FC = () => {
         return [
             { category: 'Doctor', current: currentDocs, total: Math.max(currentDocs, totalDocs || 10), label: dayLabel, icon: 'medical_services', colorClass: 'violet', ringColorClass: 'text-violet-500' },
             { category: 'Nurse', current: currentNurses, total: Math.max(currentNurses, totalNurses || 10), label: dayLabel, icon: 'health_and_safety', colorClass: 'green', ringColorClass: 'text-green-500' },
-            { category: 'Technician', current: currentTechs, total: Math.max(currentTechs, totalTechs || 10), label: dayLabel, icon: 'biotech', colorClass: 'sky', ringColorClass: 'text-sky-500' },
+
             { category: 'Urgent', current: urgentCount, total: 10, label: 'demandas espontâneas', icon: 'priority_high', colorClass: 'destructive', ringColorClass: '' },
         ];
     }, [appointments, professionals, selectedDateStr]);
@@ -390,41 +390,7 @@ export const Dashboard: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Technician Section */}
-                    <div className="flex items-start">
-                        <div className="flex flex-col items-center mr-6 h-full">
-                            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-sky-100 border-4 border-sky-50 shrink-0">
-                                <span className="material-symbols-outlined text-sky-600">biotech</span>
-                            </div>
-                        </div>
-                        <div className="pb-4 flex-1">
-                            <h4 className="font-semibold text-lg text-foreground mb-3">Técnica</h4>
-                            <div className="space-y-3">
-                                {getNextForRole('Técnica').length > 0 ? (
-                                    getNextForRole('Técnica').map(app => (
-                                        <div
-                                            key={app.id}
-                                            onClick={() => handleAppointmentClick(app)}
-                                            className="bg-card border border-border rounded-xl p-4 shadow-soft flex justify-between items-center cursor-pointer hover:border-sky-400 hover:shadow-md transition-all group"
-                                        >
-                                            <div>
-                                                <p className="font-bold text-foreground group-hover:text-sky-600 transition-colors">{app.patientName}</p>
-                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                    <span className="bg-secondary px-2 py-0.5 rounded text-xs font-medium uppercase">{app.type}</span>
-                                                    <span>• {app.professionalName}</span>
-                                                </div>
-                                            </div>
-                                            <span className="text-sky-600 font-bold bg-sky-50 px-3 py-1 rounded-lg">{app.time}</span>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="bg-card border border-border border-dashed rounded-xl p-4 flex justify-center text-muted-foreground text-sm italic">
-                                        {emptyMessage} Técnicas.
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+
                 </div>
             </div>
 

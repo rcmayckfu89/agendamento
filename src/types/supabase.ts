@@ -255,7 +255,7 @@ export type Database = {
         }
         Enums: {
             app_role: "medico" | "enfermeiro" | "tecnico" | "recepcionista"
-            appointment_status: "scheduled" | "canceled" | "finished" | "no_show"
+            appointment_status: "scheduled" | "canceled" | "finished" | "no_show" | "auto_closed"
         }
         CompositeTypes: {
             [_ in never]: never
