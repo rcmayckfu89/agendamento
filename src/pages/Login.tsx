@@ -143,7 +143,7 @@ export const Login: React.FC = () => {
 
                 {/* Visual Footer */}
                 <div className="bg-secondary/20 p-4 text-center text-xs text-muted-foreground border-t border-border">
-                    Agenda+ System • v1.0
+                    Agenda+ System • v1.1
                 </div>
             </div>
         </div>
