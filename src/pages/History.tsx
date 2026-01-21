@@ -21,6 +21,7 @@ export const History: React.FC = () => {
             .filter(a => ['finished', 'canceled', 'no_show', 'auto_closed'].includes(a.status as string))
             .map(a => ({
                 id: a.id,
+                date: a.date, // Add date field
                 time: a.time,
                 period: parseInt(a.time.split(':')[0]) < 12 ? 'AM' : 'PM',
                 patientName: a.patientName || 'Paciente Desconhecido',
@@ -28,11 +29,15 @@ export const History: React.FC = () => {
                 status: a.status as 'finished' | 'canceled' | 'no_show',
                 professional: a.professionalName || 'Profissional'
             }))
-            .sort((a, b) => b.time.localeCompare(a.time));
+            .sort((a, b) => {
+                // Sort by Date DESC, then Time DESC
+                const dateCompare = b.date.localeCompare(a.date);
+                if (dateCompare !== 0) return dateCompare;
+                return b.time.localeCompare(a.time);
+            });
 
         console.log('📊 [History] Total de agendamentos:', appointments.length);
         console.log('📊 [History] Histórico filtrado:', filtered.length, 'itens');
-        console.log('📊 [History] Status dos agendamentos:', appointments.map(a => ({ id: a.id, status: a.status, date: a.date })));
 
         return filtered;
     },
@@ -40,7 +45,7 @@ export const History: React.FC = () => {
     );
 
     const [filters, setFilters] = useState({
-        date: '', // Removido filtro padrão - mostra TODOS os atendimentos finalizados
+        date: '',
         professional: 'Todos',
         search: '',
         status: '',
@@ -56,11 +61,9 @@ export const History: React.FC = () => {
     // Filter Logic - Now with debounced search and stable dependencies
     useEffect(() => {
         const result = historyData.filter(item => {
-            const originalAppt = appointments.find(a => a.id === item.id);
-            if (!originalAppt) return false;
-
             // Se filters.date estiver vazio, mostra TODAS as datas
-            const matchDate = filters.date === '' || originalAppt.date === filters.date;
+            const matchDate = filters.date === '' || item.date === filters.date;
+
             const matchProfessional = filters.professional === 'Todos' || item.professional === filters.professional;
             const matchSearch = debouncedSearch === '' || item.patientName.toLowerCase().includes(debouncedSearch.toLowerCase());
             const matchStatus = filters.status === '' || item.status === filters.status;
@@ -69,11 +72,8 @@ export const History: React.FC = () => {
             return matchDate && matchProfessional && matchSearch && matchStatus && matchType;
         });
 
-        console.log('🔍 [History] Filtros aplicados:', filters);
-        console.log('🔍 [History] Resultados após filtro:', result.length);
-
         setFilteredData(result);
-    }, [filters.date, filters.professional, debouncedSearch, filters.status, filters.type, historyData, appointments]);
+    }, [filters.date, filters.professional, debouncedSearch, filters.status, filters.type, historyData]);
 
     const handleFilterChange = useCallback((key: string, value: string) => {
         setFilters(prev => ({ ...prev, [key]: value }));
@@ -87,11 +87,6 @@ export const History: React.FC = () => {
 
     const confirmDelete = () => {
         if (itemToDelete) {
-            // In a real app, we would call deleteAppointment(id) from context.
-            // Since deleteAppointment isn't in AppContextType in types.ts, we will skip for now 
-            // or we would need to add it. For visual consistency with the prompt's requirements
-            // about "History page", we will just hide it locally or strictly strictly implies we should delete.
-            // I'll simulate local deletion from the view for now as to not break the interface contract.
             setFilteredData(prev => prev.filter(item => item.id !== itemToDelete));
             setItemToDelete(null);
         }
@@ -222,11 +217,16 @@ export const History: React.FC = () => {
                         <a key={item.id} href="#" onClick={(e) => { e.preventDefault(); setEditingItem(item); }} className="block bg-card p-4 rounded-xl border border-border shadow-soft hover:shadow-soft-lg hover:border-primary transition-all duration-300 transform hover:-translate-y-1 cursor-pointer">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-4">
+                                    <div className="flex flex-col items-center justify-center w-24 text-center border-r border-border pr-4"> {/* Increased width and border */}
+                                        <p className="text-xs font-bold text-primary uppercase mb-1">{new Date(item.date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}</p>
+                                        <p className="text-lg font-extrabold text-foreground leading-none">{item.date.split('-')[2]}</p>
+                                        <p className="text-xs text-muted-foreground">{new Date(item.date + 'T00:00:00').toLocaleDateString('pt-BR', { month: 'short' })}</p>
+                                    </div>
                                     <div className="flex flex-col items-center justify-center w-16 text-center">
-                                        <p className="text-2xl font-bold text-foreground">{item.time}</p>
+                                        <p className="text-xl font-bold text-foreground">{item.time}</p>
                                         <p className="text-xs text-muted-foreground">{item.period}</p>
                                     </div>
-                                    <div className="h-12 w-px bg-border"></div>
+                                    <div className="h-10 w-px bg-border mx-2"></div>
                                     <div>
                                         <h3 className="font-semibold text-lg text-foreground">{item.patientName}</h3>
                                         <p className="text-sm text-muted-foreground">{item.description}</p>
@@ -246,8 +246,8 @@ export const History: React.FC = () => {
                                         </div>
                                     ) : item.status === 'auto_closed' ? (
                                         <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-100/60 px-3 py-1 rounded-full font-medium">
-                                            <span className="material-symbols-outlined text-base">schedule</span>
-                                            Enc. Automaticamente
+                                            <span className="material-symbols-outlined text-base">smart_toy</span>
+                                            Encerrado pelo Sistema
                                         </div>
                                     ) : (
                                         <div className="flex items-center gap-2 text-sm text-orange-600 bg-orange-100/60 px-3 py-1 rounded-full font-medium">

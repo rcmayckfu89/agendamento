@@ -114,20 +114,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
         // Evitar execução múltipla
         if (autoCloseExecutedRef.current) return;
-
         const autoCloseYesterdayAppointments = async () => {
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
             const yesterdayStr = yesterday.toISOString().split('T')[0];
 
+            // Filtra agendamentos PENDENTES de ONTEM
             const pendingAppointments = appointments.filter(
                 a => a.date === yesterdayStr && a.status === 'scheduled'
             );
 
             if (pendingAppointments.length > 0) {
                 console.log(`🔒 [Auto-Close] Encerrando ${pendingAppointments.length} agendamentos de ${yesterdayStr}`);
-                autoCloseExecutedRef.current = true; // Marcar como executado ANTES de fazer as atualizações
+                autoCloseExecutedRef.current = true; // Marca como executado para evitar loops
 
+                // 1. Atualiza cada agendamento no banco
                 for (const app of pendingAppointments) {
                     try {
                         await appointmentService.update(app.id, { status: 'auto_closed' });
@@ -137,12 +138,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                     }
                 }
 
-                // Atualizar lista local após encerramento
-                setAppointments(prev => prev.map(a =>
-                    pendingAppointments.some(p => p.id === a.id)
-                        ? { ...a, status: 'auto_closed' }
-                        : a
-                ));
+                // 2. FORÇA atualização dos dados globais para refletir no Histórico imediatamente
+                console.log('🔄 [Auto-Close] Recarregando dados para atualizar Histórico...');
+                await refreshData();
             }
         };
 
@@ -163,14 +161,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             }, msUntilMidnight);
         };
 
-        // Verificar ao montar se há agendamentos pendentes do dia anterior (apenas se houver appointments carregados)
+        // Verificar ao montar se há agendamentos pendentes do dia anterior
         if (appointments.length > 0) {
             autoCloseYesterdayAppointments();
         }
 
         const timerId = scheduleAutoClose();
         return () => clearTimeout(timerId);
-    }, [session]); // Remover appointments.length da dependência para evitar loop
+    }, [session, appointments]); // Re-adicionado appointments para garantir execução após load, mas protegido por ref
 
     // Actions - Patients
     const addPatient = async (patient: Partial<Patient>) => {
