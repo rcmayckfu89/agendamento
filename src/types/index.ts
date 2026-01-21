@@ -83,6 +83,7 @@ export interface Medication extends MedicationRow {
 // History Item (Derived from Appointment)
 export interface HistoryItem {
     id: string;
+    date: string; // Added date field
     time: string;
     period: 'AM' | 'PM';
     patientName: string;

@@ -245,9 +245,20 @@ export const History: React.FC = () => {
                                             Cancelado
                                         </div>
                                     ) : item.status === 'auto_closed' ? (
-                                        <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-100/60 px-3 py-1 rounded-full font-medium">
-                                            <span className="material-symbols-outlined text-base">smart_toy</span>
-                                            Encerrado pelo Sistema
+                                        <div className="flex flex-col items-end gap-1">
+                                            <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-100/60 px-3 py-1 rounded-full font-medium">
+                                                <span className="material-symbols-outlined text-base">smart_toy</span>
+                                                Encerrado pelo Sistema
+                                            </div>
+                                            <span className="text-[10px] text-muted-foreground font-medium">
+                                                {(() => {
+                                                    // Calcula dia seguinte às 00:01
+                                                    const appDate = new Date(item.date + 'T00:00:00');
+                                                    const closedDate = new Date(appDate);
+                                                    closedDate.setDate(closedDate.getDate() + 1);
+                                                    return `Em ${closedDate.toLocaleDateString('pt-BR')} às 00:01`;
+                                                })()}
+                                            </span>
                                         </div>
                                     ) : (
                                         <div className="flex items-center gap-2 text-sm text-orange-600 bg-orange-100/60 px-3 py-1 rounded-full font-medium">
