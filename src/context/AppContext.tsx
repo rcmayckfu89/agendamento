@@ -104,71 +104,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         refreshData();
     }, [session]);
 
-    // ============================================
-    // AUTO-CLOSE: Encerramento automático às 00:01
-    // ============================================
-    const autoCloseExecutedRef = React.useRef(false);
 
-    useEffect(() => {
-        if (!session) return;
-
-        // Evitar execução múltipla
-        if (autoCloseExecutedRef.current) return;
-        const autoCloseYesterdayAppointments = async () => {
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-            // Filtra agendamentos PENDENTES de ONTEM
-            const pendingAppointments = appointments.filter(
-                a => a.date === yesterdayStr && a.status === 'scheduled'
-            );
-
-            if (pendingAppointments.length > 0) {
-                console.log(`🔒 [Auto-Close] Encerrando ${pendingAppointments.length} agendamentos de ${yesterdayStr}`);
-                autoCloseExecutedRef.current = true; // Marca como executado para evitar loops
-
-                // 1. Atualiza cada agendamento no banco
-                for (const app of pendingAppointments) {
-                    try {
-                        await appointmentService.update(app.id, { status: 'auto_closed' });
-                        console.log(`✅ [Auto-Close] Agendamento ${app.id} encerrado automaticamente`);
-                    } catch (err) {
-                        console.error(`❌ [Auto-Close] Erro ao encerrar agendamento ${app.id}:`, err);
-                    }
-                }
-
-                // 2. FORÇA atualização dos dados globais para refletir no Histórico imediatamente
-                console.log('🔄 [Auto-Close] Recarregando dados para atualizar Histórico...');
-                await refreshData();
-            }
-        };
-
-        // Calcular tempo até 00:01 do próximo dia
-        const scheduleAutoClose = () => {
-            const now = new Date();
-            const nextMidnight = new Date(now);
-            nextMidnight.setDate(nextMidnight.getDate() + 1);
-            nextMidnight.setHours(0, 1, 0, 0); // 00:01:00
-
-            const msUntilMidnight = nextMidnight.getTime() - now.getTime();
-            console.log(`⏰ [Auto-Close] Próxima verificação em ${Math.round(msUntilMidnight / 1000 / 60)} minutos`);
-
-            return setTimeout(() => {
-                autoCloseExecutedRef.current = false; // Reset para permitir nova execução
-                autoCloseYesterdayAppointments();
-                scheduleAutoClose(); // Reagendar para o próximo dia
-            }, msUntilMidnight);
-        };
-
-        // Verificar ao montar se há agendamentos pendentes do dia anterior
-        if (appointments.length > 0) {
-            autoCloseYesterdayAppointments();
-        }
-
-        const timerId = scheduleAutoClose();
-        return () => clearTimeout(timerId);
-    }, [session, appointments]); // Re-adicionado appointments para garantir execução após load, mas protegido por ref
 
     // Actions - Patients
     const addPatient = async (patient: Partial<Patient>) => {
