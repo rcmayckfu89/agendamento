@@ -5,7 +5,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Agenda+</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap"
+    rel="stylesheet" />
   <link
     href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
     rel="stylesheet" />
@@ -13,76 +15,70 @@
   <style type="text/tailwindcss">
     @layer base {
         :root {
-          --background: 240 10% 99%;
-          --foreground: 224 71% 4%;
+          --background: 195 20% 98%;
+          --foreground: 195 45% 10%;
           --card: 0 0% 100%;
-          --card-foreground: 224 71% 4%;
+          --card-foreground: 195 45% 10%;
           --popover: 0 0% 100%;
-          --popover-foreground: 224 71% 4%;
-          --primary: 262.1 83.3% 57.8%;
-          --primary-foreground: 210 20% 98%;
-          --secondary: 220 13% 91%;
-          --secondary-foreground: 220.9 39.3% 11%;
-          --muted: 220 13% 91%;
-          --muted-foreground: 220 9% 46%;
-          --accent: 220 13% 91%;
-          --accent-foreground: 220.9 39.3% 11%;
-          --destructive: 0 84.2% 60.2%;
+          --popover-foreground: 195 45% 10%;
+          --primary: 195 45% 18%;
+          --primary-foreground: 195 20% 98%;
+          --secondary: 195 15% 92%;
+          --secondary-foreground: 195 45% 15%;
+          --muted: 195 10% 94%;
+          --muted-foreground: 195 20% 40%;
+          --accent: 175 80% 40%;
+          --accent-foreground: 0 0% 100%;
+          --destructive: 15 90% 50%;
           --destructive-foreground: 210 20% 98%;
-          --border: 220 13% 91%;
-          --input: 220 13% 91%;
-          --ring: 262.1 83.3% 57.8%;
-          --radius: 1rem;
+          --border: 195 20% 90%;
+          --input: 195 20% 90%;
+          --ring: 175 80% 40%;
+          --radius: 0.75rem;
         }
 
         .dark {
-          --background: 222.2 84% 4.9%;
-          --foreground: 210 40% 98%;
-          --card: 222.2 84% 4.9%;
-          --card-foreground: 210 40% 98%;
-          --popover: 222.2 84% 4.9%;
-          --popover-foreground: 210 40% 98%;
-          --primary: 263.4 70% 50.4%;
-          --primary-foreground: 210 40% 98%;
-          --secondary: 217.2 32.6% 17.5%;
-          --secondary-foreground: 210 40% 98%;
-          --muted: 217.2 32.6% 17.5%;
-          --muted-foreground: 215 20.2% 65.1%;
-          --accent: 217.2 32.6% 17.5%;
-          --accent-foreground: 210 40% 98%;
-          --destructive: 0 62.8% 30.6%;
-          --destructive-foreground: 210 40% 98%;
-          --border: 217.2 32.6% 17.5%;
-          --input: 217.2 32.6% 17.5%;
-          --ring: 263.4 70% 50.4%;
+          --background: 195 45% 5%;
+          --foreground: 195 20% 98%;
+          --card: 195 45% 7%;
+          --card-foreground: 195 20% 98%;
+          --popover: 195 45% 7%;
+          --popover-foreground: 195 20% 98%;
+          --primary: 175 80% 40%;
+          --primary-foreground: 195 45% 5%;
+          --secondary: 195 45% 15%;
+          --secondary-foreground: 195 20% 98%;
+          --muted: 195 45% 12%;
+          --muted-foreground: 195 20% 65%;
+          --accent: 175 80% 40%;
+          --accent-foreground: 195 45% 5%;
+          --destructive: 15 90% 40%;
+          --destructive-foreground: 210 20% 98%;
+          --border: 195 45% 15%;
+          --input: 195 45% 15%;
+          --ring: 175 80% 40%;
         }
       }
+
+      .font-mono {
+        font-family: 'JetBrains Mono', monospace;
+      }
+
       .material-symbols-outlined {
         font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
         font-size: 22px;
         vertical-align: middle;
       }
-      .material-symbols-outlined.fill {
-        font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-      }
+
       .chart-ring {
         stroke-dasharray: 0, 100;
         transition: stroke-dasharray 1s ease-out;
       }
       
-      /* Custom Animations */
-      @keyframes fadeIn {
+      /* Vanguard Clinical Animations */
+      @keyframes syncSlide {
         from {
-          opacity: 0;
-        }
-        to {
-          opacity: 1;
-        }
-      }
-      
-      @keyframes slideInLeft {
-        from {
-          transform: translateX(-100%);
+          transform: translateX(10px);
           opacity: 0;
         }
         to {
@@ -91,70 +87,54 @@
         }
       }
       
-      @keyframes slideInRight {
-        from {
-          transform: translateX(100%);
-          opacity: 0;
-        }
-        to {
-          transform: translateX(0);
-          opacity: 1;
-        }
+      @keyframes precisionFade {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      @keyframes clickEffect {
+        0% { transform: scale(1); }
+        50% { transform: scale(0.98); }
+        100% { transform: scale(1); }
+      }
+
+      .animate-sync-slide {
+        animation: syncSlide 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+
+      .animate-precision-fade {
+        animation: precisionFade 0.3s ease-out both;
+      }
+
+      .active-click:active {
+        animation: clickEffect 0.15s ease-out forwards;
       }
       
-      @keyframes slideInUp {
-        from {
-          transform: translateY(30px);
-          opacity: 0;
-        }
-        to {
-          transform: translateY(0);
-          opacity: 1;
-        }
+      /* Subtle Grain Overlay */
+      .grain-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        pointer-events: none;
+        opacity: 0.02;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
       }
+
+      /* Stagger delays */
+      .stagger-1 { animation-delay: 0.05s; }
+      .stagger-2 { animation-delay: 0.1s; }
+      .stagger-3 { animation-delay: 0.15s; }
+      .stagger-4 { animation-delay: 0.2s; }
       
-      @keyframes scaleIn {
-        from {
-          transform: scale(0.9);
-          opacity: 0;
-        }
-        to {
-          transform: scale(1);
-          opacity: 1;
-        }
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
       }
-      
-      .animate-fade-in {
-        animation: fadeIn 0.5s ease-out;
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
       }
-      
-      .animate-slide-in-left {
-        animation: slideInLeft 0.5s ease-out;
-      }
-      
-      .animate-slide-in-right {
-        animation: slideInRight 0.5s ease-out;
-      }
-      
-      .animate-slide-in-up {
-        animation: slideInUp 0.5s ease-out;
-      }
-      
-      .animate-scale-in {
-        animation: scaleIn 0.4s ease-out;
-      }
-      
-      /* Stagger animations */
-      .stagger-1 { animation-delay: 0.1s; }
-      .stagger-2 { animation-delay: 0.2s; }
-      .stagger-3 { animation-delay: 0.3s; }
-      .stagger-4 { animation-delay: 0.4s; }
-      .stagger-5 { animation-delay: 0.5s; }
-      .stagger-6 { animation-delay: 0.6s; }
-      
-      /* Initial state for animated elements */
-      .animate-on-load {
-        opacity: 0;
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: hsl(var(--border));
+        border-radius: 10px;
       }
     </style>
   <script>
@@ -201,6 +181,17 @@
             display: ["Inter", "sans-serif"],
             sans: ["Inter", "sans-serif"],
           },
+          fontSize: {
+            'xs': ['0.8125rem', { lineHeight: '1.25rem' }],   // 13px
+            'sm': ['0.875rem', { lineHeight: '1.5rem' }],     // 14px
+            'base': ['1rem', { lineHeight: '1.6rem' }],       // 16px
+            'lg': ['1.125rem', { lineHeight: '1.75rem' }],    // 18px
+            'xl': ['1.25rem', { lineHeight: '1.75rem' }],     // 20px
+            '2xl': ['1.5rem', { lineHeight: '2rem' }],        // 24px
+            '3xl': ['1.875rem', { lineHeight: '2.25rem' }],   // 30px
+            '4xl': ['2.25rem', { lineHeight: '2.5rem' }],     // 36px
+            '5xl': ['3rem', { lineHeight: '1' }],             // 48px
+          },
           borderRadius: {
             lg: `var(--radius, 1rem)`,
             md: `calc(var(--radius, 1rem) - 4px)`,
@@ -227,7 +218,8 @@
   <link rel="stylesheet" href="/index.css">
 </head>
 
-<body class="font-display bg-background text-foreground">
+<body class="font-display bg-background text-foreground custom-scrollbar text-base antialiased selection:bg-accent/20">
+  <div class="grain-overlay"></div>
   <div id="root"></div>
   <script type="module" src="/src/index.tsx"></script>
 </body>

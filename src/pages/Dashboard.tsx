@@ -1,17 +1,20 @@
 
 import React, { useMemo, useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { StatCard } from '../components/features/StatCard';
 import { StatData, Appointment } from '../types';
 import { useApp } from '../context/AppContext';
+import { formatDateToYYYYMMDD, getTodayLocalStr } from '../utils/dateUtils';
 
 export const Dashboard: React.FC = () => {
     const navigate = useNavigate();
-    const { appointments, professionals, updateAppointment } = useApp();
+    const { appointments, professionals, updateAppointment, refreshData, isLoading } = useApp();
 
     // Mount/Unmount logging for debugging
     useEffect(() => {
         console.log('🟢 [Dashboard] Mounted');
+        refreshData(); // Ensure fresh data on mount
         return () => console.log('🔴 [Dashboard] Unmounted');
     }, []);
 
@@ -19,6 +22,7 @@ export const Dashboard: React.FC = () => {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
     const datePickerRef = useRef<HTMLDivElement>(null);
+    const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
 
     // State for Interaction Modal
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
@@ -36,21 +40,20 @@ export const Dashboard: React.FC = () => {
     }, []);
 
     // Date helpers
-    const formatDateString = (date: Date) => date.toISOString().split('T')[0];
-    const todayStr = formatDateString(new Date());
-    const selectedDateStr = formatDateString(selectedDate);
+    const todayStr = getTodayLocalStr();
+    const selectedDateStr = formatDateToYYYYMMDD(selectedDate);
     const isToday = selectedDateStr === todayStr;
 
     const isYesterday = () => {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
-        return selectedDateStr === formatDateString(yesterday);
+        return selectedDateStr === formatDateToYYYYMMDD(yesterday);
     };
 
     const isTomorrow = () => {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
-        return selectedDateStr === formatDateString(tomorrow);
+        return selectedDateStr === formatDateToYYYYMMDD(tomorrow);
     };
 
     const getDateLabel = () => {
@@ -71,9 +74,21 @@ export const Dashboard: React.FC = () => {
         setIsDatePickerOpen(false);
     };
 
+    // Auto-refresh data when date changes to ensure we have the latest
+    useEffect(() => {
+        console.log('🔄 [Dashboard] Date change detected:', selectedDateStr);
+        refreshData();
+    }, [selectedDateStr]);
+
     // Calculate stats based on selected date
     const stats: StatData[] = useMemo(() => {
-        const dateAppts = appointments.filter(a => a.date === selectedDateStr && a.status !== 'canceled');
+        // Robust filtering in case date includes time components
+        const dateAppts = appointments.filter(a => {
+            const rowDate = a.date ? a.date.split('T')[0] : '';
+            return rowDate === selectedDateStr && a.status !== 'canceled';
+        });
+
+        console.log(`📊 [Dashboard] Stats recalc. Appts for ${selectedDateStr}:`, dateAppts.length);
 
         const countByRole = (role: string) => {
             return dateAppts.filter(a => {
@@ -105,7 +120,10 @@ export const Dashboard: React.FC = () => {
     // Get appointments for selected date
     const dateAppointments = useMemo(() => {
         return appointments
-            .filter(a => a.date === selectedDateStr && a.status === 'scheduled')
+            .filter(a => {
+                const rowDate = a.date ? a.date.split('T')[0] : '';
+                return rowDate === selectedDateStr && a.status === 'scheduled';
+            })
             .sort((a, b) => a.time.localeCompare(b.time));
     }, [appointments, selectedDateStr]);
 
@@ -149,121 +167,139 @@ export const Dashboard: React.FC = () => {
 
     return (
         <div className="flex flex-col h-full relative">
-            {/* Header - responsive */}
-            <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:mb-10">
+            {/* Header - heroic typographic style */}
+            <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 md:mb-12 animate-sync-slide">
                 <div className="relative">
-                    <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Visão Geral</h2>
-                    <div className="flex items-center gap-2 mt-1">
-                        <p className="text-sm md:text-base text-muted-foreground">
-                            Resumo dos seus atendimentos
+                    <h2 className="text-4xl md:text-6xl font-black tracking-tighter text-foreground font-display">
+                        Visão Geral
+                    </h2>
+                    <div className="flex items-center gap-2 mt-4">
+                        <p className="text-base md:text-lg text-muted-foreground font-bold uppercase tracking-[0.2em] opacity-80">
+                            EFICIÊNCIA CLÍNICA <span className="text-accent">•</span> {getDateLabel()}
                         </p>
 
                         {/* Date Picker Pill */}
                         <div ref={datePickerRef} className="relative">
                             <button
-                                onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+                                onClick={(e) => {
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    setDropdownPosition({
+                                        top: rect.bottom + 8,
+                                        left: rect.left
+                                    });
+                                    setIsDatePickerOpen(!isDatePickerOpen);
+                                }}
                                 className={`
-                                    inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium
-                                    transition-all duration-300 ease-out
+                                    inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider
+                                    transition-all duration-300 ease-out active-click
                                     ${isToday
-                                        ? 'bg-primary/10 text-primary hover:bg-primary/20'
-                                        : 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400'
+                                        ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                                        : 'bg-accent text-accent-foreground hover:bg-accent/90'
                                     }
-                                    ${isDatePickerOpen ? 'ring-2 ring-primary/30 shadow-md' : 'hover:shadow-sm'}
+                                    ${isDatePickerOpen ? 'ring-2 ring-accent/30 shadow-md' : 'hover:shadow-sm'}
                                 `}
                             >
-                                <span className="material-symbols-outlined text-base">calendar_today</span>
+                                <span className="material-symbols-outlined text-sm">calendar_month</span>
                                 <span>{getDateLabel()}</span>
-                                <span className={`material-symbols-outlined text-base transition-transform duration-300 ${isDatePickerOpen ? 'rotate-180' : ''}`}>
+                                <span className={`material-symbols-outlined text-sm transition-transform duration-300 ${isDatePickerOpen ? 'rotate-180' : ''}`}>
                                     expand_more
                                 </span>
                             </button>
 
-                            {/* Expanded Date Navigator */}
-                            <div className={`
-                                absolute top-full left-0 mt-2 z-50
-                                bg-card border border-border rounded-xl shadow-xl
-                                overflow-hidden
-                                transition-all duration-300 ease-out origin-top-left
-                                ${isDatePickerOpen
-                                    ? 'opacity-100 scale-100 translate-y-0'
-                                    : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
-                                }
-                            `}>
-                                <div className="p-3 min-w-[280px]">
-                                    {/* Navigation Row */}
-                                    <div className="flex items-center justify-between mb-3">
-                                        <button
-                                            onClick={() => navigateDate(-1)}
-                                            className="p-2 rounded-lg hover:bg-accent transition-colors"
-                                            title="Dia anterior"
-                                        >
-                                            <span className="material-symbols-outlined">chevron_left</span>
-                                        </button>
+                            {/* Expanded Date Navigator - Rendered via Portal */}
+                            {ReactDOM.createPortal(
+                                <div
+                                    className={`
+                                        fixed z-[10000]
+                                        bg-card border border-border rounded-xl shadow-2xl
+                                        overflow-hidden
+                                        transition-all duration-300 ease-out origin-top-left
+                                        ${isDatePickerOpen
+                                            ? 'opacity-100 scale-100 translate-y-0'
+                                            : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
+                                        }
+                                    `}
+                                    style={{
+                                        top: `${dropdownPosition.top}px`,
+                                        left: `${dropdownPosition.left}px`
+                                    }}
+                                >
+                                    <div className="p-3 min-w-[280px]">
+                                        {/* Navigation Row */}
+                                        <div className="flex items-center justify-between mb-3">
+                                            <button
+                                                onClick={() => navigateDate(-1)}
+                                                className="p-2 rounded-lg hover:bg-accent transition-colors"
+                                                title="Dia anterior"
+                                            >
+                                                <span className="material-symbols-outlined">chevron_left</span>
+                                            </button>
 
-                                        <div className="text-center">
-                                            <p className="text-lg font-bold text-foreground">
-                                                {selectedDate.toLocaleDateString('pt-BR', { weekday: 'long' })}
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {selectedDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
-                                            </p>
+                                            <div className="text-center">
+                                                <p className="text-lg font-bold text-foreground">
+                                                    {selectedDate.toLocaleDateString('pt-BR', { weekday: 'long' })}
+                                                </p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {selectedDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                                </p>
+                                            </div>
+
+                                            <button
+                                                onClick={() => navigateDate(1)}
+                                                className="p-2 rounded-lg hover:bg-accent transition-colors"
+                                                title="Próximo dia"
+                                            >
+                                                <span className="material-symbols-outlined">chevron_right</span>
+                                            </button>
                                         </div>
 
-                                        <button
-                                            onClick={() => navigateDate(1)}
-                                            className="p-2 rounded-lg hover:bg-accent transition-colors"
-                                            title="Próximo dia"
-                                        >
-                                            <span className="material-symbols-outlined">chevron_right</span>
-                                        </button>
+                                        {/* Quick Access Buttons */}
+                                        <div className="grid grid-cols-3 gap-2 mb-3">
+                                            {[-1, 0, 1].map(offset => {
+                                                const date = new Date();
+                                                date.setDate(date.getDate() + offset);
+                                                const dateStr = formatDateToYYYYMMDD(date);
+                                                const isSelected = selectedDateStr === dateStr;
+                                                const label = offset === -1 ? 'Ontem' : offset === 0 ? 'Hoje' : 'Amanhã';
+
+                                                return (
+                                                    <button
+                                                        key={offset}
+                                                        onClick={() => {
+                                                            setSelectedDate(date);
+                                                            setIsDatePickerOpen(false);
+                                                        }}
+                                                        className={`
+                                                            px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all active-click
+                                                            ${isSelected
+                                                                ? 'bg-primary text-primary-foreground shadow-md'
+                                                                : 'bg-secondary/50 hover:bg-secondary text-foreground'
+                                                            }
+                                                        `}
+                                                    >
+                                                        <span className="block text-[10px] opacity-70 font-mono">
+                                                            {date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                                        </span>
+                                                        <span>{label}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {/* Go to Today Button */}
+                                        {!isToday && (
+                                            <button
+                                                onClick={goToToday}
+                                                className="w-full py-2 px-4 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                                            >
+                                                <span className="material-symbols-outlined text-base">today</span>
+                                                Voltar para Hoje
+                                            </button>
+                                        )}
                                     </div>
-
-                                    {/* Quick Access Buttons */}
-                                    <div className="grid grid-cols-3 gap-2 mb-3">
-                                        {[-1, 0, 1].map(offset => {
-                                            const date = new Date();
-                                            date.setDate(date.getDate() + offset);
-                                            const dateStr = formatDateString(date);
-                                            const isSelected = selectedDateStr === dateStr;
-                                            const label = offset === -1 ? 'Ontem' : offset === 0 ? 'Hoje' : 'Amanhã';
-
-                                            return (
-                                                <button
-                                                    key={offset}
-                                                    onClick={() => {
-                                                        setSelectedDate(date);
-                                                        setIsDatePickerOpen(false);
-                                                    }}
-                                                    className={`
-                                                        px-3 py-2 rounded-lg text-sm font-medium transition-all
-                                                        ${isSelected
-                                                            ? 'bg-primary text-primary-foreground shadow-md'
-                                                            : 'bg-secondary/50 hover:bg-secondary text-foreground'
-                                                        }
-                                                    `}
-                                                >
-                                                    <span className="block text-xs opacity-70">
-                                                        {date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                                                    </span>
-                                                    <span>{label}</span>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-
-                                    {/* Go to Today Button */}
-                                    {!isToday && (
-                                        <button
-                                            onClick={goToToday}
-                                            className="w-full py-2 px-4 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
-                                        >
-                                            <span className="material-symbols-outlined text-base">today</span>
-                                            Voltar para Hoje
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
+                                </div>,
+                                document.body
+                            )}
                         </div>
 
                         {/* Visual indicator when not today */}
@@ -278,18 +314,18 @@ export const Dashboard: React.FC = () => {
                 <div className="flex items-center gap-2 md:gap-4 w-full sm:w-auto">
                     <button
                         onClick={() => navigate('/agenda')}
-                        className="flex-1 sm:flex-none bg-primary text-primary-foreground font-semibold py-2 md:py-2.5 px-3 md:px-5 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors shadow-soft text-sm md:text-base"
+                        className="flex-1 sm:flex-none bg-primary text-primary-foreground font-bold py-2 md:py-3 px-4 md:px-6 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/95 transition-all shadow-sm active-click text-xs md:text-sm uppercase tracking-widest border border-white/10"
                     >
-                        <span className="material-symbols-outlined text-xl md:text-2xl">event</span>
-                        <span className="hidden sm:inline">Abrir Agenda</span>
+                        <span className="material-symbols-outlined text-lg md:text-xl">event</span>
+                        <span className="hidden sm:inline">Agenda Semanal</span>
                         <span className="sm:hidden">Agenda</span>
                     </button>
                     <button
                         onClick={() => navigate('/patients')}
-                        className="flex-1 sm:flex-none bg-card text-secondary-foreground font-semibold py-2 md:py-2.5 px-3 md:px-5 rounded-lg flex items-center justify-center gap-2 hover:bg-secondary transition-colors border border-border shadow-soft text-sm md:text-base"
+                        className="flex-1 sm:flex-none bg-white text-primary font-bold py-2 md:py-3 px-4 md:px-6 rounded-lg flex items-center justify-center gap-2 hover:bg-secondary transition-all border border-border shadow-sm active-click text-xs md:text-sm uppercase tracking-widest"
                     >
-                        <span className="material-symbols-outlined text-xl md:text-2xl">visibility</span>
-                        <span className="hidden sm:inline">Ver Pacientes</span>
+                        <span className="material-symbols-outlined text-lg md:text-xl">group</span>
+                        <span className="hidden sm:inline">Base de Pacientes</span>
                         <span className="sm:hidden">Pacientes</span>
                     </button>
                 </div>
@@ -303,12 +339,13 @@ export const Dashboard: React.FC = () => {
             </div>
 
             <div className="flex-1 overflow-y-auto pr-0 md:pr-2">
-                <div className="flex items-center gap-3 mb-4 md:mb-6">
-                    <h3 className="text-lg md:text-2xl font-bold tracking-tight text-foreground">
-                        {isToday ? 'Próximos Atendimentos' : `Atendimentos de ${getDateLabel()}`}
+                <div className="flex items-center gap-3 mb-6 md:mb-8 animate-sync-slide" style={{ animationDelay: '0.1s' }}>
+                    <h3 className="text-xl md:text-2xl font-bold tracking-tight text-foreground font-display">
+                        {isToday ? 'Fila de Atendimento' : `Agenda: ${getDateLabel()}`}
                     </h3>
+                    <div className="h-px flex-1 bg-border hidden md:block"></div>
                     {!isToday && (
-                        <span className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-1 rounded-full">
+                        <span className="text-[10px] font-mono font-bold bg-accent text-accent-foreground px-2 py-1 rounded-full border border-white/10 uppercase">
                             {selectedDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                         </span>
                     )}
@@ -333,16 +370,17 @@ export const Dashboard: React.FC = () => {
                                         <div
                                             key={app.id}
                                             onClick={() => handleAppointmentClick(app)}
-                                            className="bg-card border border-border rounded-xl p-4 shadow-soft flex justify-between items-center cursor-pointer hover:border-violet-400 hover:shadow-md transition-all group"
+                                            className="bg-card border border-border rounded-lg p-5 shadow-sm flex justify-between items-center cursor-pointer hover:border-primary hover:shadow-md transition-all group active-click border-l-[6px] border-l-primary"
                                         >
-                                            <div>
-                                                <p className="font-bold text-foreground group-hover:text-violet-600 transition-colors">{app.patientName}</p>
-                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                    <span className="bg-secondary px-2 py-0.5 rounded text-xs font-medium uppercase">{app.type}</span>
-                                                    <span>• {app.professionalName}</span>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="font-bold text-lg md:text-xl text-foreground group-hover:text-primary transition-colors truncate font-display">{app.patientName}</p>
+                                                <div className="flex items-center gap-3 text-[13px] font-bold text-muted-foreground uppercase mt-2">
+                                                    <span className="bg-secondary px-2 py-1 rounded-md">{app.type}</span>
+                                                    <span className="opacity-50">•</span>
+                                                    <span className="truncate">{app.professionalName}</span>
                                                 </div>
                                             </div>
-                                            <span className="text-violet-600 font-bold bg-violet-50 px-3 py-1 rounded-lg">{app.time}</span>
+                                            <span className="text-primary font-bold font-mono text-2xl ml-6 bg-primary/5 px-3 py-1.5 rounded-lg border border-primary/10">{app.time}</span>
                                         </div>
                                     ))
                                 ) : (
@@ -369,16 +407,17 @@ export const Dashboard: React.FC = () => {
                                         <div
                                             key={app.id}
                                             onClick={() => handleAppointmentClick(app)}
-                                            className="bg-card border border-border rounded-xl p-4 shadow-soft flex justify-between items-center cursor-pointer hover:border-green-400 hover:shadow-md transition-all group"
+                                            className="bg-card border border-border rounded-lg p-5 shadow-sm flex justify-between items-center cursor-pointer hover:border-accent hover:shadow-md transition-all group active-click border-l-[6px] border-l-accent"
                                         >
-                                            <div>
-                                                <p className="font-bold text-foreground group-hover:text-green-600 transition-colors">{app.patientName}</p>
-                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                    <span className="bg-secondary px-2 py-0.5 rounded text-xs font-medium uppercase">{app.type}</span>
-                                                    <span>• {app.professionalName}</span>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="font-bold text-lg md:text-xl text-foreground group-hover:text-accent transition-colors truncate font-display">{app.patientName}</p>
+                                                <div className="flex items-center gap-3 text-[13px] font-bold text-muted-foreground uppercase mt-2">
+                                                    <span className="bg-secondary px-2 py-1 rounded-md">{app.type}</span>
+                                                    <span className="opacity-50">•</span>
+                                                    <span className="truncate">{app.professionalName}</span>
                                                 </div>
                                             </div>
-                                            <span className="text-green-600 font-bold bg-green-50 px-3 py-1 rounded-lg">{app.time}</span>
+                                            <span className="text-accent font-bold font-mono text-2xl ml-6 bg-accent/5 px-3 py-1.5 rounded-lg border border-accent/10">{app.time}</span>
                                         </div>
                                     ))
                                 ) : (
@@ -396,44 +435,45 @@ export const Dashboard: React.FC = () => {
 
             {/* Modal de Status */}
             {isModalOpen && selectedAppointment && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-card rounded-xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="px-6 py-4 border-b border-border bg-muted/20">
-                            <h3 className="font-bold text-lg text-foreground">Gerenciar Atendimento</h3>
-                            <p className="text-sm text-muted-foreground mt-1">
-                                {selectedAppointment.time} - {selectedAppointment.patientName}
-                            </p>
+                <div className="fixed inset-0 bg-primary/20 backdrop-blur-sm z-[10001] flex items-center justify-center p-4">
+                    <div className="bg-card rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-precision-fade border border-border">
+                        <div className="px-6 py-5 border-b border-border bg-muted/30">
+                            <h3 className="font-bold text-lg text-foreground font-display">Gerenciar Atendimento</h3>
+                            <div className="flex items-center gap-2 mt-2">
+                                <span className="font-mono text-sm bg-primary text-primary-foreground px-2 py-0.5 rounded-full">{selectedAppointment.time}</span>
+                                <span className="font-bold text-sm text-foreground truncate">{selectedAppointment.patientName}</span>
+                            </div>
                         </div>
                         <div className="p-6 space-y-3">
                             <button
                                 onClick={() => updateStatus('finished')}
-                                className="w-full bg-green-100 hover:bg-green-200 text-green-800 font-semibold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors border border-green-200"
+                                className="w-full bg-accent text-accent-foreground font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-all border border-accent/20 active-click uppercase text-xs tracking-widest"
                             >
-                                <span className="material-symbols-outlined">check_circle</span>
+                                <span className="material-symbols-outlined text-xl">check_circle</span>
                                 Concluir Atendimento
                             </button>
 
                             <button
                                 onClick={() => updateStatus('no_show')}
-                                className="w-full bg-orange-100 hover:bg-orange-200 text-orange-800 font-semibold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors border border-orange-200"
+                                className="w-full bg-secondary text-secondary-foreground font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-all border border-border active-click uppercase text-xs tracking-widest"
                             >
-                                <span className="material-symbols-outlined">person_off</span>
+                                <span className="material-symbols-outlined text-xl">person_off</span>
                                 Paciente Faltou
                             </button>
 
                             <button
                                 onClick={() => updateStatus('canceled')}
-                                className="w-full bg-red-100 hover:bg-red-200 text-red-800 font-semibold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors border border-red-200"
+                                className="w-full bg-destructive/10 text-destructive font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-all border border-destructive/20 active-click uppercase text-xs tracking-widest"
                             >
-                                <span className="material-symbols-outlined">cancel</span>
+                                <span className="material-symbols-outlined text-xl">cancel</span>
                                 Cancelar Agendamento
                             </button>
 
                             <button
                                 onClick={() => setIsModalOpen(false)}
-                                className="w-full mt-4 text-muted-foreground hover:bg-accent py-2 px-4 rounded-lg text-sm"
+                                className="w-full mt-4 text-muted-foreground hover:bg-muted py-2 px-4 rounded-lg text-xs font-bold uppercase tracking-wider transition-all"
                             >
-                                Voltar / Fechar
+                                Voltar
                             </button>
                         </div>
                     </div>

@@ -4,6 +4,7 @@ import { Medication, Patient } from '../types';
 import { medicationService } from '../services/medicationService';
 import { patientService } from '../services/patientService';
 import { useDebounce } from '../hooks/useDebounce';
+import { getTodayLocalStr } from '../utils/dateUtils';
 
 export const Medications: React.FC = () => {
     const [medications, setMedications] = useState<Medication[]>([]);
@@ -165,7 +166,7 @@ export const Medications: React.FC = () => {
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         link.setAttribute('href', url);
-        link.setAttribute('download', `medicamentos_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute('download', `medicamentos_${getTodayLocalStr()}.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
@@ -285,7 +286,7 @@ export const Medications: React.FC = () => {
                         onClick={handleOpenCreate}
                         className="flex-1 sm:flex-none bg-primary text-primary-foreground font-semibold py-2 px-4 md:px-5 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors shadow-soft text-sm"
                     >
-                        <span className="material-symbols-outlined">add_circle</span>
+                        <span className="material-symbols-outlined text-accent-foreground">add_circle</span>
                         <span className="hidden sm:inline">Adicionar</span>
                         <span className="sm:hidden">Novo</span>
                     </button>

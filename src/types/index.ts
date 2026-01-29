@@ -115,6 +115,7 @@ export interface AppContextType {
 
     addBlockedDay: (day: Partial<BlockedDay>) => Promise<void>;
     removeBlockedDay: (id: string) => Promise<void>;
+    refreshData: () => Promise<void>;
 
     // UI/Loading State
     isLoading: boolean;

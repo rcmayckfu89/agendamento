@@ -1,6 +1,7 @@
 
 import { supabase } from './supabaseClient';
 import { Medication, MedicationRow } from '../types';
+import { formatDateToYYYYMMDD } from '../utils/dateUtils';
 
 export const medicationService = {
     async getAll(): Promise<Medication[]> {
@@ -43,7 +44,7 @@ export const medicationService = {
         if (medication.prescription_date && medication.duration_days) {
             const prescDate = new Date(medication.prescription_date);
             prescDate.setDate(prescDate.getDate() + medication.duration_days);
-            renewal_date = prescDate.toISOString().split('T')[0];
+            renewal_date = formatDateToYYYYMMDD(prescDate);
         }
 
         const insertData = {
@@ -69,7 +70,7 @@ export const medicationService = {
         if (medication.prescription_date && medication.duration_days) {
             const prescDate = new Date(medication.prescription_date);
             prescDate.setDate(prescDate.getDate() + medication.duration_days);
-            renewal_date = prescDate.toISOString().split('T')[0];
+            renewal_date = formatDateToYYYYMMDD(prescDate);
         }
 
         const updateData: any = { ...rest };

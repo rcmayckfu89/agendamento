@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Appointment, ServiceType } from '../types';
 import { daysOfWeek, weekDaySlugs } from '../constants/weekConfig';
+import { formatDateToYYYYMMDD, getTodayLocalStr } from '../utils/dateUtils';
 
 export const Agenda: React.FC = () => {
     const { professionals, patients, appointments, addAppointment, deleteAppointment, blockedDays } = useApp();
@@ -113,7 +114,7 @@ export const Agenda: React.FC = () => {
     const handleNewAppointment = () => {
         setErrorMessage(null);
         setSuccessMessage(null);
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayLocalStr();
         setFormDate(today);
         setFormTime('08:00');
         setFormPatientId('');
@@ -184,7 +185,7 @@ export const Agenda: React.FC = () => {
 
     // Filter appointments for the visible week
     const getAppointmentsForDay = (date: Date) => {
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = formatDateToYYYYMMDD(date);
         return appointments
             .filter(a => a.date === dateStr && a.professional_id === selectedProfId && a.status !== 'canceled')
             .sort((a, b) => a.time.localeCompare(b.time));
@@ -193,7 +194,7 @@ export const Agenda: React.FC = () => {
     // Get configuration for the day to show labels
     const getDayConfig = (date: Date) => {
         if (!selectedProf) return null;
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = formatDateToYYYYMMDD(date);
 
         // Check blocked
         const blocked = blockedDays.find(b => b.date === dateStr);
@@ -212,20 +213,20 @@ export const Agenda: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col h-full relative animate-slide-in-up">
+        <div className="flex flex-col h-full relative animate-precision-fade">
             {/* Header - responsive */}
-            <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 md:mb-6">
+            <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 md:mb-8">
                 <div>
-                    <h2 className="text-xl md:text-3xl font-bold tracking-tight text-foreground">Agenda Semanal</h2>
-                    <p className="text-sm text-muted-foreground mt-1 hidden sm:block">Gerencie os agendamentos da semana.</p>
+                    <h2 className="text-2xl md:text-4xl font-bold tracking-tighter text-foreground font-display">Agenda Clínica</h2>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1 hidden sm:block opacity-60">Sincronização de Atendimentos</p>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
                     <div className="flex flex-col">
-                        <label className="text-xs font-semibold text-muted-foreground mb-1">Profissional:</label>
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Profissional:</label>
                         <select
                             value={selectedProfId}
                             onChange={(e) => setSelectedProfId(e.target.value)}
-                            className="bg-card border border-border rounded-lg py-2 px-3 text-sm font-medium focus:ring-primary"
+                            className="bg-card border border-border rounded-sm py-2 px-3 text-xs font-bold font-display focus:ring-accent focus:border-accent outline-none uppercase tracking-wide"
                         >
                             {professionals.map(p => (
                                 <option key={p.id} value={p.id}>{p.name} ({p.role})</option>
@@ -234,34 +235,33 @@ export const Agenda: React.FC = () => {
                     </div>
                     <button
                         onClick={handleNewAppointment}
-                        className="bg-primary text-primary-foreground font-semibold py-2 md:py-2.5 px-4 md:px-5 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors shadow-soft sm:mt-5 text-sm md:text-base"
+                        className="bg-accent text-accent-foreground font-bold py-2 md:py-3 px-4 md:px-6 rounded-lg flex items-center justify-center gap-2 hover:bg-accent/90 transition-all shadow-sm sm:mt-5 text-xs uppercase tracking-widest active-click border border-white/10"
                     >
-                        <span className="material-symbols-outlined">add</span>
-                        <span className="hidden sm:inline">Novo Agendamento</span>
-                        <span className="sm:hidden">Agendar</span>
+                        <span className="material-symbols-outlined text-xl text-white">add_circle</span>
+                        Novo Agendamento
                     </button>
                 </div>
             </header>
 
-            <div className="flex-1 flex flex-col bg-card border border-border rounded-xl shadow-soft min-h-[400px] md:min-h-[600px] overflow-hidden">
+            <div className="flex-1 flex flex-col bg-card border border-border rounded-xl shadow-sm min-h-[400px] md:min-h-[600px] overflow-hidden">
                 {/* Navigation Header - responsive */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-2 md:p-4 border-b border-border bg-muted/10 gap-2">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-2 md:p-4 border-b border-border bg-muted/20 gap-2">
                     <div className="flex items-center gap-2 md:gap-4 w-full sm:w-auto justify-between sm:justify-start">
-                        <h3 className="text-base md:text-xl font-semibold text-foreground capitalize">
+                        <h3 className="text-base md:text-lg font-bold text-foreground capitalize font-display tracking-tight">
                             {currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
                         </h3>
-                        <div className="flex items-center gap-1 bg-background rounded-md border border-border p-1">
-                            <button onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() - 7)))} className="p-1 rounded hover:bg-accent"><span className="material-symbols-outlined text-lg md:text-2xl">chevron_left</span></button>
-                            <button onClick={() => setCurrentDate(new Date())} className="px-2 md:px-3 text-xs md:text-sm font-semibold hover:bg-accent rounded">Hoje</button>
-                            <button onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() + 7)))} className="p-1 rounded hover:bg-accent"><span className="material-symbols-outlined text-lg md:text-2xl">chevron_right</span></button>
+                        <div className="flex items-center gap-1 bg-background rounded-lg border border-border p-0.5">
+                            <button onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() - 7)))} className="p-1 rounded-lg hover:bg-accent hover:text-white transition-colors"><span className="material-symbols-outlined text-lg">chevron_left</span></button>
+                            <button onClick={() => setCurrentDate(new Date())} className="px-2 md:px-3 text-[10px] font-bold uppercase tracking-wider hover:bg-accent hover:text-white rounded-lg transition-colors">Hoje</button>
+                            <button onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() + 7)))} className="p-1 rounded-lg hover:bg-accent hover:text-white transition-colors"><span className="material-symbols-outlined text-lg">chevron_right</span></button>
                         </div>
                     </div>
-                    {/* Legend - hide on mobile */}
-                    <div className="hidden md:flex items-center gap-3 text-xs">
-                        <div className="flex items-center gap-1"><div className="w-3 h-3 bg-violet-100 border-l-2 border-violet-500 rounded-sm"></div><span>Consulta</span></div>
-                        <div className="flex items-center gap-1"><div className="w-3 h-3 bg-orange-100 border-l-2 border-orange-500 rounded-sm"></div><span>Hiperdia</span></div>
-                        <div className="flex items-center gap-1"><div className="w-3 h-3 bg-pink-100 border-l-2 border-pink-500 rounded-sm"></div><span>Pré-Natal</span></div>
-                        <div className="flex items-center gap-1"><div className="w-3 h-3 bg-red-100 border-l-2 border-red-500 rounded-sm"></div><span>Bloqueado</span></div>
+                    {/* Legend - refined labels */}
+                    <div className="hidden md:flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-primary border border-white/20"></div><span>Geral</span></div>
+                        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-orange-600 border border-white/20"></div><span>Hiperdia</span></div>
+                        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-pink-600 border border-white/20"></div><span>Natal</span></div>
+                        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-destructive border border-white/20"></div><span>Bloqueio</span></div>
                     </div>
                 </div>
 
@@ -273,25 +273,25 @@ export const Agenda: React.FC = () => {
                             const isCurrent = isToday(date);
                             const config = getDayConfig(date);
                             return (
-                                <div key={idx} className={`border-r border-border text-center py-2 md:py-3 ${isCurrent ? 'bg-primary/5' : ''}`}>
-                                    <p className={`text-[10px] md:text-xs font-bold uppercase ${isCurrent ? 'text-primary' : 'text-muted-foreground'}`}>{daysOfWeek[idx]}</p>
-                                    <p className={`text-lg md:text-xl font-bold ${isCurrent ? 'text-primary' : ''}`}>{date.getDate()}</p>
-                                    {/* Mini Config Display - hide on mobile */}
+                                <div key={idx} className={`border-r border-border text-center py-2 md:py-4 ${isCurrent ? 'bg-primary/10' : ''}`}>
+                                    <p className={`text-[10px] font-bold uppercase tracking-widest ${isCurrent ? 'text-primary' : 'text-muted-foreground opacity-60'}`}>{daysOfWeek[idx]}</p>
+                                    <p className={`text-xl md:text-2xl font-bold font-display tracking-tight ${isCurrent ? 'text-primary' : ''}`}>{date.getDate()}</p>
+                                    {/* Mini Config Display - mono labels */}
                                     <div className="hidden md:block">
                                         {config && !('blocked' in config) && (
-                                            <div className="flex flex-col gap-0.5 mt-1 px-1">
-                                                <span className={`text-[9px] px-1 rounded truncate ${config.am.type === 'LIVRE' ? 'bg-gray-100 text-gray-400' : 'bg-blue-50 text-blue-700 font-medium'}`}>
-                                                    M: {config.am.type === 'LIVRE' ? 'X' : config.am.type}
+                                            <div className="flex flex-col gap-0.5 mt-2 px-1">
+                                                <span className={`text-[8px] font-mono font-bold px-1 rounded-full uppercase tracking-tighter ${config.am.type === 'LIVRE' ? 'bg-muted text-muted-foreground opacity-30' : 'bg-primary text-primary-foreground'}`}>
+                                                    M:{config.am.type === 'LIVRE' ? '—' : config.am.type}
                                                 </span>
-                                                <span className={`text-[9px] px-1 rounded truncate ${config.pm.type === 'LIVRE' ? 'bg-gray-100 text-gray-400' : 'bg-indigo-50 text-indigo-700 font-medium'}`}>
-                                                    T: {config.pm.type === 'LIVRE' ? 'X' : config.pm.type}
+                                                <span className={`text-[8px] font-mono font-bold px-1 rounded-full uppercase tracking-tighter ${config.pm.type === 'LIVRE' ? 'bg-muted text-muted-foreground opacity-30' : 'bg-accent text-accent-foreground'}`}>
+                                                    T:{config.pm.type === 'LIVRE' ? '—' : config.pm.type}
                                                 </span>
                                             </div>
                                         )}
                                         {config && 'blocked' in config && (
-                                            <div className="flex flex-col gap-0.5 mt-1 px-1">
-                                                <span className="text-[9px] px-1 rounded truncate bg-red-100 text-red-700 font-bold border border-red-200">
-                                                    BLOQUEADO
+                                            <div className="flex flex-col gap-0.5 mt-2 px-1">
+                                                <span className="text-[8px] font-bold px-1 rounded-full bg-destructive text-destructive-foreground border border-white/10 uppercase tracking-tighter">
+                                                    LOCK
                                                 </span>
                                             </div>
                                         )}
@@ -321,25 +321,25 @@ export const Agenda: React.FC = () => {
                                 <div key={idx} className="border-r border-border min-h-[200px] p-1 space-y-2 hover:bg-accent/5 transition-colors relative">
                                     {dayAppts.length > 0 ? (
                                         dayAppts.map(appt => {
-                                            // Dynamic styling based on type
-                                            const type = appt.type || 'AGENDA'; // Safety Default
-                                            let colorClass = 'bg-violet-100 border-violet-500 text-violet-800';
-                                            if (type === 'HIPERDIA') colorClass = 'bg-orange-100 border-orange-500 text-orange-800';
-                                            if (type === 'PRÉ-NATAL') colorClass = 'bg-pink-100 border-pink-500 text-pink-800';
-                                            if (type === 'PUERICULTURA') colorClass = 'bg-green-100 border-green-500 text-green-800';
+                                            // Updated clinical colors
+                                            const type = appt.type || 'AGENDA';
+                                            let colorClass = 'bg-primary text-primary-foreground border-accent';
+                                            if (type === 'HIPERDIA') colorClass = 'bg-orange-600 text-white border-orange-400';
+                                            if (type === 'PRÉ-NATAL') colorClass = 'bg-pink-600 text-white border-pink-400';
+                                            if (type === 'PUERICULTURA') colorClass = 'bg-teal-700 text-white border-teal-500';
 
                                             return (
                                                 <div
                                                     onClick={() => handleOpenDelete(appt)}
                                                     key={appt.id}
-                                                    className={`${colorClass} border-l-4 p-2 rounded text-xs shadow-sm cursor-pointer hover:brightness-95`}
+                                                    className={`${colorClass} border-l-[3px] p-2.5 rounded-lg text-[12px] shadow-sm cursor-pointer hover:brightness-110 active-click animate-sync-slide outline-none`}
                                                     title={`${type} - ${appt.patientName || 'Sem Nome'}`}
                                                 >
-                                                    <div className="flex justify-between font-bold">
-                                                        <span>{appt.time}</span>
+                                                    <div className="font-mono font-bold text-[13px] mb-1 tracking-tighter">
+                                                        {appt.time}
                                                     </div>
-                                                    <div className="truncate font-medium">{appt.patientName || 'Paciente Desconhecido'}</div>
-                                                    <div className="opacity-75 truncate text-[10px] uppercase">{type}</div>
+                                                    <div className="truncate font-bold font-display uppercase tracking-tight text-[13px] leading-tight">{appt.patientName || 'Paciente'}</div>
+                                                    <div className="opacity-80 truncate text-[10px] font-bold tracking-[0.1em] uppercase mt-0.5">{type}</div>
                                                 </div>
                                             )
                                         })
@@ -356,140 +356,136 @@ export const Agenda: React.FC = () => {
 
                 {/* Modal de Novo Agendamento */}
                 {isModalOpen && (
-                    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                        <div className="bg-card rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-                            <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-muted/20">
-                                <h3 className="font-bold text-lg">Novo Agendamento</h3>
-                                <button onClick={() => setIsModalOpen(false)} className="text-muted-foreground hover:text-foreground">
+                    <div className="fixed inset-0 bg-primary/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <div className="bg-card rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-precision-fade border border-border">
+                            <div className="px-6 py-5 border-b border-border flex justify-between items-center bg-muted/30">
+                                <h3 className="font-bold text-lg font-display tracking-tight text-foreground uppercase">Agendar Atendimento</h3>
+                                <button onClick={() => setIsModalOpen(false)} className="text-muted-foreground hover:text-foreground active-click transition-colors">
                                     <span className="material-symbols-outlined">close</span>
                                 </button>
                             </div>
 
-                            <form onSubmit={handleSaveAppointment} className="p-6 space-y-4">
+                            <form onSubmit={handleSaveAppointment} className="p-6 space-y-5">
                                 {errorMessage && (
-                                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm flex items-start gap-2">
-                                        <span className="material-symbols-outlined text-base mt-0.5">error</span>
+                                    <div className="bg-destructive/10 border border-destructive px-4 py-3 rounded-lg text-xs font-bold text-destructive flex items-start gap-2 animate-sync-slide">
+                                        <span className="material-symbols-outlined text-sm">report</span>
                                         {errorMessage}
                                     </div>
                                 )}
                                 {successMessage && (
-                                    <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded text-sm flex items-start gap-2">
-                                        <span className="material-symbols-outlined text-base mt-0.5">check_circle</span>
+                                    <div className="bg-accent/10 border border-accent px-4 py-3 rounded-lg text-xs font-bold text-accent flex items-start gap-2 animate-sync-slide">
+                                        <span className="material-symbols-outlined text-sm">verified</span>
                                         {successMessage}
                                     </div>
                                 )}
 
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">Profissional</label>
-                                    <input
-                                        disabled
-                                        value={selectedProf?.name || ''}
-                                        className="w-full rounded-md border border-border bg-muted text-muted-foreground px-3 py-2 cursor-not-allowed"
-                                    />
-                                </div>
-
-                                <div className="relative">
-                                    <label className="block text-sm font-medium mb-1">Paciente</label>
-                                    <div className="relative">
-                                        <input
-                                            type="text"
-                                            placeholder="Digite o nome do paciente..."
-                                            value={patientSearchTerm}
-                                            onChange={(e) => {
-                                                setPatientSearchTerm(e.target.value);
-                                                setShowPatientList(true);
-                                                if (e.target.value === '') setFormPatientId('');
-                                            }}
-                                            onFocus={() => setShowPatientList(true)}
-                                            className="w-full rounded-md border border-border bg-background px-3 py-2 pr-10 focus:ring-2 focus:ring-primary focus:outline-none"
-                                        />
-                                        {formPatientId && (
-                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-600">
-                                                <span className="material-symbols-outlined text-lg">check_circle</span>
-                                            </div>
-                                        )}
+                                <div className="grid grid-cols-1 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Profissional Responsável</label>
+                                        <div className="w-full rounded-lg border border-border bg-muted/50 px-3 py-2.5 text-xs font-bold text-foreground font-display cursor-not-allowed uppercase">
+                                            {selectedProf?.name || ''}
+                                        </div>
                                     </div>
 
-                                    {showPatientList && (
-                                        <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-md shadow-lg max-h-60 overflow-auto">
-                                            {patients.filter(p => p.name.toLowerCase().includes(patientSearchTerm.toLowerCase())).length > 0 ? (
-                                                patients
-                                                    .filter(p => p.name.toLowerCase().includes(patientSearchTerm.toLowerCase()))
-                                                    .map(p => (
-                                                        <div
-                                                            key={p.id}
-                                                            onClick={() => {
-                                                                setFormPatientId(p.id);
-                                                                setPatientSearchTerm(p.name);
-                                                                setShowPatientList(false);
-                                                            }}
-                                                            className="px-4 py-2 hover:bg-accent cursor-pointer text-sm border-b border-border/50 last:border-0 flex flex-col"
-                                                        >
-                                                            <span className="font-medium">{p.name}</span>
-                                                            <span className="text-xs text-muted-foreground">CPF: {p.cpfOrCns}</span>
-                                                        </div>
-                                                    ))
-                                            ) : (
-                                                <div className="px-4 py-3 text-sm text-muted-foreground text-center">
-                                                    Nenhum paciente encontrado.
+                                    <div className="relative">
+                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Paciente</label>
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                placeholder="PESQUISAR NOME OU CPF..."
+                                                value={patientSearchTerm}
+                                                onChange={(e) => {
+                                                    setPatientSearchTerm(e.target.value);
+                                                    setShowPatientList(true);
+                                                    if (e.target.value === '') setFormPatientId('');
+                                                }}
+                                                onFocus={() => setShowPatientList(true)}
+                                                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 pr-10 focus:border-accent focus:outline-none text-xs font-bold uppercase placeholder:text-muted-foreground/50 transition-all font-display"
+                                            />
+                                            {formPatientId && (
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-accent">
+                                                    <span className="material-symbols-outlined text-lg">check_circle</span>
                                                 </div>
                                             )}
                                         </div>
-                                    )}
-                                    {/* Overlay to close list when clicking outside (simple version) */}
-                                    {showPatientList && (
-                                        <div className="fixed inset-0 z-0" onClick={() => setShowPatientList(false)}></div>
-                                    )}
-                                </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1">Data</label>
-                                        <input
-                                            required
-                                            type="date"
-                                            value={formDate}
-                                            onChange={(e) => setFormDate(e.target.value)}
-                                            className="w-full rounded-md border border-border bg-background px-3 py-2"
-                                        />
+                                        {showPatientList && (
+                                            <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-lg shadow-2xl max-h-52 overflow-auto custom-scrollbar">
+                                                {patients.filter(p => p.name.toLowerCase().includes(patientSearchTerm.toLowerCase())).length > 0 ? (
+                                                    patients
+                                                        .filter(p => p.name.toLowerCase().includes(patientSearchTerm.toLowerCase()))
+                                                        .map(p => (
+                                                            <div
+                                                                key={p.id}
+                                                                onClick={() => {
+                                                                    setFormPatientId(p.id);
+                                                                    setPatientSearchTerm(p.name);
+                                                                    setShowPatientList(false);
+                                                                }}
+                                                                className="px-4 py-3 hover:bg-accent hover:text-white cursor-pointer transition-colors border-b border-border/50 last:border-0 flex flex-col gap-1"
+                                                            >
+                                                                <span className="font-bold text-xs uppercase tracking-tight">{p.name}</span>
+                                                                <span className="text-[9px] font-mono opacity-60">DOC: {p.cpfOrCns}</span>
+                                                            </div>
+                                                        ))
+                                                ) : (
+                                                    <div className="px-4 py-4 text-[10px] font-bold text-muted-foreground text-center uppercase tracking-widest">
+                                                        Nenhum registro encontrado
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                        {showPatientList && (
+                                            <div className="fixed inset-0 z-0" onClick={() => setShowPatientList(false)}></div>
+                                        )}
                                     </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Data</label>
+                                            <input
+                                                required
+                                                type="date"
+                                                value={formDate}
+                                                onChange={(e) => setFormDate(e.target.value)}
+                                                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-xs font-bold uppercase focus:border-accent outline-none font-display"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Horário</label>
+                                            <input
+                                                required
+                                                type="time"
+                                                value={formTime}
+                                                onChange={(e) => setFormTime(e.target.value)}
+                                                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-xs font-bold uppercase focus:border-accent outline-none font-mono"
+                                            />
+                                        </div>
+                                    </div>
+
                                     <div>
-                                        <label className="block text-sm font-medium mb-1">Horário</label>
-                                        <input
+                                        <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Linha de Cuidado</label>
+                                        <select
                                             required
-                                            type="time"
-                                            value={formTime}
-                                            onChange={(e) => setFormTime(e.target.value)}
-                                            className="w-full rounded-md border border-border bg-background px-3 py-2"
-                                        />
+                                            value={formType}
+                                            onChange={(e) => setFormType(e.target.value as ServiceType)}
+                                            className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-xs font-bold uppercase focus:border-accent outline-none font-display tracking-wide"
+                                        >
+                                            <option value="AGENDA">AGENDA GERAL</option>
+                                            <option value="HIPERDIA">HIPERDIA (HAS/DM)</option>
+                                            <option value="PRÉ-NATAL">PRÉ-NATAL</option>
+                                            <option value="PUERICULTURA">PUERICULTURA</option>
+                                            <option value="CITOPATOLÓGICO">CITOPATOLÓGICO</option>
+                                            <option value="VISITA DOMICILIAR">VISITA DOMICILIAR</option>
+                                            <option value="DEMANDA ESPONTÂNEA">DEMANDA ESPONTÂNEA</option>
+                                        </select>
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">Tipo de Atendimento</label>
-                                    <select
-                                        required
-                                        value={formType}
-                                        onChange={(e) => setFormType(e.target.value as ServiceType)}
-                                        className="w-full rounded-md border border-border bg-background px-3 py-2"
-                                    >
-                                        <option value="AGENDA">AGENDA (Geral)</option>
-                                        <option value="HIPERDIA">HIPERDIA</option>
-                                        <option value="PRÉ-NATAL">PRÉ-NATAL</option>
-                                        <option value="PUERICULTURA">PUERICULTURA</option>
-                                        <option value="CITOPATOLÓGICO">CITOPATOLÓGICO</option>
-                                        <option value="VISITA DOMICILIAR">VISITA DOMICILIAR</option>
-                                        <option value="DEMANDA ESPONTÂNEA">DEMANDA ESPONTÂNEA</option>
-                                    </select>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                        O sistema verificará se este tipo é permitido na data/hora selecionada.
-                                    </p>
-                                </div>
-
-                                <div className="pt-2 flex justify-end gap-2">
-                                    <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-secondary transition-colors">Cancelar</button>
-                                    <button type="submit" className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
-                                        Confirmar Agendamento
+                                <div className="pt-2 flex justify-end gap-3">
+                                    <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-muted transition-colors transition-all active-click">Cancelar</button>
+                                    <button type="submit" className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-widest hover:bg-primary/95 transition-all shadow-md active-click border border-white/10">
+                                        Validar e Confirmar
                                     </button>
                                 </div>
                             </form>

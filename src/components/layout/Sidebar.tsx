@@ -55,13 +55,13 @@ export const Sidebar: React.FC = () => {
         <>
             <div className={`p-4 h-16 md:h-20 flex items-center ${isSidebarCollapsed && !isMobile ? 'justify-center' : 'justify-between'}`}>
                 {(!isSidebarCollapsed || isMobile) && (
-                    <h1 className="text-xl md:text-2xl font-extrabold tracking-tighter text-foreground whitespace-nowrap overflow-hidden">
-                        Agenda<span className="text-primary">+</span>
+                    <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground whitespace-nowrap overflow-hidden font-display flex items-center gap-1">
+                        Agenda<span className="text-accent">+</span>
                     </h1>
                 )}
                 {isSidebarCollapsed && !isMobile && (
-                    <h1 className="text-xl font-extrabold tracking-tighter text-foreground">
-                        A<span className="text-primary">+</span>
+                    <h1 className="text-xl font-bold tracking-tight text-foreground font-display flex items-center justify-center">
+                        A<span className="text-accent">+</span>
                     </h1>
                 )}
 
@@ -108,9 +108,9 @@ export const Sidebar: React.FC = () => {
                         to={item.path}
                         title={isSidebarCollapsed && !isMobile ? item.name : ''}
                         className={({ isActive }) =>
-                            `flex items-center gap-3 px-3 py-3 rounded-lg font-medium transition-all duration-200 overflow-hidden relative ${isActive
-                                ? 'bg-primary text-primary-foreground shadow-soft font-semibold'
-                                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                            `flex items-center gap-3.5 px-3.5 py-3.5 rounded-lg font-bold transition-all duration-200 overflow-hidden relative active-click ${isActive
+                                ? 'bg-primary text-primary-foreground border-l-4 border-accent shadow-soft animate-sync-slide outline-none'
+                                : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                             } ${isSidebarCollapsed && !isMobile ? 'justify-center' : ''}`
                         }
                     >
@@ -124,7 +124,7 @@ export const Sidebar: React.FC = () => {
                                 </span>
                                 {/* Badge for Medications */}
                                 {item.path === '/medications' && urgentMedicationsCount > 0 && (
-                                    <span className={`absolute ${isSidebarCollapsed && !isMobile ? 'top-1.5 right-1.5' : 'top-2 right-2'} bg-red-500 text-white rounded-full min-w-[20px] h-5 px-1.5 text-xs font-bold flex items-center justify-center shadow-md animate-pulse`}>
+                                    <span className={`absolute font-mono ${isSidebarCollapsed && !isMobile ? 'top-1.5 right-1.5' : 'top-3 right-3'} bg-accent text-accent-foreground rounded-full min-w-[20px] h-5 px-1.5 text-[11px] font-bold flex items-center justify-center shadow-sm border border-white/20`}>
                                         {urgentMedicationsCount}
                                     </span>
                                 )}
@@ -139,24 +139,24 @@ export const Sidebar: React.FC = () => {
                     onClick={async () => {
                         await signOut();
                     }}
-                    className={`flex items-center gap-3 px-3 py-3 w-full rounded-lg font-medium text-destructive hover:bg-destructive/10 transition-colors overflow-hidden ${isSidebarCollapsed && !isMobile ? 'justify-center' : ''}`}
+                    className={`flex items-center gap-3.5 px-3.5 py-3.5 w-full rounded-lg font-bold text-destructive hover:bg-destructive/10 transition-colors overflow-hidden active-click ${isSidebarCollapsed && !isMobile ? 'justify-center' : ''}`}
                     title={isSidebarCollapsed && !isMobile ? 'Sair' : ''}
                 >
-                    <span className="material-symbols-outlined text-2xl flex-shrink-0">logout</span>
-                    <span className={`whitespace-nowrap transition-opacity duration-200 ${isSidebarCollapsed && !isMobile ? 'opacity-0 w-0 hidden' : 'opacity-100'}`}>
+                    <span className="material-symbols-outlined text-[28px] flex-shrink-0">logout</span>
+                    <span className={`whitespace-nowrap transition-opacity duration-200 font-display text-[15px] ${isSidebarCollapsed && !isMobile ? 'opacity-0 w-0 hidden' : 'opacity-100'}`}>
                         Sair
                     </span>
                 </button>
 
                 <button
                     onClick={toggleTheme}
-                    className={`flex items-center gap-3 px-3 py-3 w-full rounded-lg font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors overflow-hidden ${isSidebarCollapsed && !isMobile ? 'justify-center' : ''}`}
+                    className={`flex items-center gap-3.5 px-3.5 py-3.5 w-full rounded-lg font-bold text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors overflow-hidden active-click ${isSidebarCollapsed && !isMobile ? 'justify-center' : ''}`}
                     title={isSidebarCollapsed && !isMobile ? (isDarkMode ? 'Modo Claro' : 'Modo Escuro') : ''}
                 >
-                    <span className="material-symbols-outlined fill text-2xl flex-shrink-0">
+                    <span className="material-symbols-outlined text-[28px] flex-shrink-0">
                         {isDarkMode ? 'light_mode' : 'dark_mode'}
                     </span>
-                    <span className={`whitespace-nowrap transition-opacity duration-200 ${isSidebarCollapsed && !isMobile ? 'opacity-0 w-0 hidden' : 'opacity-100'}`}>
+                    <span className={`whitespace-nowrap transition-opacity duration-200 font-display text-[15px] ${isSidebarCollapsed && !isMobile ? 'opacity-0 w-0 hidden' : 'opacity-100'}`}>
                         {isDarkMode ? 'Modo Claro' : 'Modo Escuro'}
                     </span>
                 </button>
