@@ -22,7 +22,9 @@ export const Medications: React.FC = () => {
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+    const [isRenewalModalOpen, setIsRenewalModalOpen] = useState(false);
     const [currentMedicationId, setCurrentMedicationId] = useState<string | null>(null);
+    const [medicationToRenew, setMedicationToRenew] = useState<Medication | null>(null);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -33,6 +35,9 @@ export const Medications: React.FC = () => {
         priority: 'Baixa' as 'Baixa' | 'Média' | 'Urgente',
         notes: ''
     });
+
+    // Renewal Form State
+    const [renewalDuration, setRenewalDuration] = useState(30);
 
     useEffect(() => {
         let isMounted = true;
@@ -175,6 +180,26 @@ export const Medications: React.FC = () => {
 
     const handleOpenHistory = () => {
         setIsHistoryModalOpen(true);
+    };
+
+    const handleOpenRenewal = (medication: Medication) => {
+        setMedicationToRenew(medication);
+        setRenewalDuration(medication.duration_days || 30);
+        setIsRenewalModalOpen(true);
+    };
+
+    const handleConfirmRenewal = async () => {
+        if (!medicationToRenew) return;
+
+        try {
+            await medicationService.renew(medicationToRenew.id, renewalDuration);
+            await loadData();
+            setIsRenewalModalOpen(false);
+            setMedicationToRenew(null);
+            alert('Medicamento renovado com sucesso!');
+        } catch (err) {
+            alert('Erro ao renovar medicamento: ' + (err instanceof Error ? err.message : 'Erro desconhecido'));
+        }
     };
 
     const handleSave = async (e: React.FormEvent) => {
@@ -355,6 +380,13 @@ export const Medications: React.FC = () => {
                                         </td>
                                         <td className="p-4 text-right whitespace-nowrap">
                                             <button
+                                                onClick={() => handleOpenRenewal(medication)}
+                                                className="p-2 rounded-md hover:bg-accent/10 text-muted-foreground hover:text-accent transition-colors mr-1"
+                                                title="Renovar Receita"
+                                            >
+                                                <span className="material-symbols-outlined">autorenew</span>
+                                            </button>
+                                            <button
                                                 onClick={() => handleOpenEdit(medication)}
                                                 className="p-2 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors mr-1"
                                                 title="Editar"
@@ -397,6 +429,13 @@ export const Medications: React.FC = () => {
                                         <div className="text-xs text-muted-foreground">{medication.patientName}</div>
                                     </div>
                                     <div className="flex items-center gap-1">
+                                        <button
+                                            onClick={() => handleOpenRenewal(medication)}
+                                            className="p-1.5 rounded hover:bg-accent/10 text-accent"
+                                            title="Renovar"
+                                        >
+                                            <span className="material-symbols-outlined text-lg">autorenew</span>
+                                        </button>
                                         <button
                                             onClick={() => handleOpenEdit(medication)}
                                             className="p-1.5 rounded hover:bg-accent text-muted-foreground"
@@ -582,6 +621,62 @@ export const Medications: React.FC = () => {
                         </div>
                         <div className="px-6 py-4 border-t border-border bg-secondary/20 flex justify-end">
                             <button onClick={() => setIsHistoryModalOpen(false)} className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-secondary transition-colors border border-border bg-card">Fechar</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Renovação */}
+            {isRenewalModalOpen && medicationToRenew && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-card rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-accent/5">
+                            <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
+                                <span className="material-symbols-outlined text-accent">autorenew</span>
+                                Renovar Receita
+                            </h3>
+                            <button onClick={() => setIsRenewalModalOpen(false)} className="text-muted-foreground hover:text-foreground">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <div className="mb-6 p-4 bg-secondary/20 rounded-lg border border-border">
+                                <p className="text-sm text-muted-foreground mb-1">Medicamento</p>
+                                <p className="font-bold text-lg text-foreground">{medicationToRenew.name}</p>
+                                <p className="text-sm text-muted-foreground mt-2">Paciente: {medicationToRenew.patientName}</p>
+                            </div>
+
+                            <div className="mb-6">
+                                <label className="block text-sm font-medium mb-2">Novo Aprazamento (Duração)</label>
+                                <select
+                                    value={renewalDuration}
+                                    onChange={(e) => setRenewalDuration(parseInt(e.target.value))}
+                                    className="w-full rounded-md border border-border bg-background px-3 py-2 focus:ring-2 focus:ring-accent"
+                                >
+                                    <option value={30}>30 dias</option>
+                                    <option value={60}>60 dias</option>
+                                    <option value={90}>90 dias</option>
+                                </select>
+                                <p className="text-xs text-muted-foreground mt-2">
+                                    A data de prescrição será atualizada para hoje e a renovação será calculada automaticamente.
+                                </p>
+                            </div>
+
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={() => setIsRenewalModalOpen(false)}
+                                    className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-secondary transition-colors border border-border bg-card"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleConfirmRenewal}
+                                    className="px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors shadow-sm flex items-center gap-2"
+                                >
+                                    <span className="material-symbols-outlined text-base">check_circle</span>
+                                    Confirmar Renovação
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

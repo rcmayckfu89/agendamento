@@ -89,6 +89,7 @@ export const medicationService = {
         return data;
     },
 
+
     async delete(id: string): Promise<void> {
         const { error } = await supabase
             .from('medications')
@@ -96,5 +97,31 @@ export const medicationService = {
             .eq('id', id);
 
         if (error) throw new Error(error.message);
+    },
+
+    async renew(id: string, newDurationDays: number): Promise<MedicationRow> {
+        // Get today's date for the new prescription date
+        const today = new Date();
+        const prescriptionDate = formatDateToYYYYMMDD(today);
+
+        // Calculate new renewal date
+        const renewalDateObj = new Date(today);
+        renewalDateObj.setDate(renewalDateObj.getDate() + newDurationDays);
+        const renewalDate = formatDateToYYYYMMDD(renewalDateObj);
+
+        const { data, error } = await supabase
+            .from('medications')
+            .update({
+                prescription_date: prescriptionDate,
+                duration_days: newDurationDays,
+                renewal_date: renewalDate,
+                status: 'active'
+            })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data;
     }
 };
