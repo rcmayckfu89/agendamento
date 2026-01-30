@@ -5,6 +5,7 @@ import { useApp } from '../context/AppContext';
 import { formatDateToYYYYMMDD, getTodayLocalStr } from '../utils/dateUtils';
 import { Appointment, StatData } from '../types';
 import { PatientQueueItem } from '../types/queue';
+import { useRealtimeAppointments } from '../hooks/useRealtimeAppointments';
 
 // Components
 import { DateSelector } from '../components/features/DateSelector';
@@ -14,22 +15,40 @@ import { QueueActionModal } from '../components/features/QueueActionModal';
 
 export const Dashboard: React.FC = () => {
     const navigate = useNavigate();
-    const { appointments, professionals, updateAppointment, refreshData } = useApp();
+    const {
+        appointments,
+        professionals,
+        updateAppointment,
+        refreshData,
+        handleRealtimeInsert,
+        handleRealtimeUpdate,
+        handleRealtimeDelete
+    } = useApp();
 
     // --- State ---
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [selectedPatient, setSelectedPatient] = useState<PatientQueueItem | null>(null);
     const [isActionModalOpen, setIsActionModalOpen] = useState(false);
 
-    // mount/refresh logic
-    useEffect(() => {
-        refreshData();
-    }, []);
-
     // --- Helpers ---
     const todayStr = getTodayLocalStr();
     const selectedDateStr = formatDateToYYYYMMDD(selectedDate);
     const isToday = selectedDateStr === todayStr;
+
+    // --- Realtime Subscription ---
+    useRealtimeAppointments({
+        startDate: selectedDateStr,
+        endDate: selectedDateStr,
+        onInsert: handleRealtimeInsert,
+        onUpdate: handleRealtimeUpdate,
+        onDelete: handleRealtimeDelete,
+        enabled: true
+    });
+
+    // mount/refresh logic
+    useEffect(() => {
+        refreshData();
+    }, []);
 
     // --- Data Processing (Memoized) ---
 
