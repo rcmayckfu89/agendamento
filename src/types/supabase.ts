@@ -21,6 +21,11 @@ export type Database = {
                     status: Database["public"]["Enums"]["appointment_status"] | null
                     time: string
                     updated_at: string | null
+                    // New columns
+                    queue_status: Database["public"]["Enums"]["queue_status_type"] | null
+                    called_at: string | null
+                    service_location: string | null
+                    duration_minutes: number | null
                 }
                 Insert: {
                     created_at?: string | null
@@ -33,6 +38,10 @@ export type Database = {
                     status?: Database["public"]["Enums"]["appointment_status"] | null
                     time: string
                     updated_at?: string | null
+                    queue_status?: Database["public"]["Enums"]["queue_status_type"] | null
+                    called_at?: string | null
+                    service_location?: string | null
+                    duration_minutes?: number | null
                 }
                 Update: {
                     created_at?: string | null
@@ -45,6 +54,10 @@ export type Database = {
                     status?: Database["public"]["Enums"]["appointment_status"] | null
                     time?: string
                     updated_at?: string | null
+                    queue_status?: Database["public"]["Enums"]["queue_status_type"] | null
+                    called_at?: string | null
+                    service_location?: string | null
+                    duration_minutes?: number | null
                 }
                 Relationships: [
                     {
@@ -256,6 +269,7 @@ export type Database = {
         Enums: {
             app_role: "medico" | "enfermeiro" | "tecnico" | "recepcionista"
             appointment_status: "scheduled" | "canceled" | "finished" | "no_show" | "auto_closed"
+            queue_status_type: 'waiting' | 'in-call' | 'urgent' | 'procedure' | 'return'
         }
         CompositeTypes: {
             [_ in never]: never

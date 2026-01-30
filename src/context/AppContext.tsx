@@ -1,16 +1,18 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { Patient, Professional, Appointment, BlockedDay, AppContextType } from '../types';
 import { patientService } from '../services/patientService';
 import { appointmentService } from '../services/appointmentService';
 import { professionalService } from '../services/professionalService';
 import { settingsService } from '../services/settingsService';
 import { useAuth } from './AuthContext';
+import { useToast } from './ToastContext';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { session } = useAuth();
+    const { showToast } = useToast();
 
     // State
     const [patients, setPatients] = useState<Patient[]>([]);
@@ -23,6 +25,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     // Concurrency Guard
     const fetchingRef = React.useRef(false);
+
+    // Realtime Loop Prevention
+    const localUpdateIdsRef = useRef<Set<string>>(new Set());
+    const addLocalUpdateId = (id: string) => {
+        localUpdateIdsRef.current.add(id);
+        // Clear after 2 seconds to prevent memory leak
+        setTimeout(() => {
+            localUpdateIdsRef.current.delete(id);
+        }, 2000);
+    };
 
     // Fetch Data on Mount / Auth Change
     const refreshData = async () => {
@@ -104,7 +116,82 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         refreshData();
     }, [session]);
 
+    // Realtime Event Handlers
+    const handleRealtimeInsert = (newAppointment: any) => {
+        // Check if this is a local update (prevent loop)
+        if (localUpdateIdsRef.current.has(newAppointment.id)) {
+            console.log('🔄 [Realtime] Ignoring INSERT - local update:', newAppointment.id);
+            return;
+        }
 
+        console.log('✨ [Realtime] Processing INSERT:', newAppointment);
+
+        // Resolve names
+        const patientObj = patients.find(p => p.id === newAppointment.patient_id);
+        const professionalObj = professionals.find(p => p.id === newAppointment.professional_id);
+
+        const fullAppointment: Appointment = {
+            ...newAppointment,
+            patientName: patientObj?.name || 'Desconhecido',
+            professionalName: professionalObj?.name || professionalObj?.email || 'Profissional',
+            type: newAppointment.service || 'AGENDA'
+        };
+
+        setAppointments(prev => {
+            // Check if already exists (edge case)
+            if (prev.some(a => a.id === fullAppointment.id)) {
+                console.log('⚠️ [Realtime] Appointment already exists, skipping INSERT');
+                return prev;
+            }
+            return [fullAppointment, ...prev];
+        });
+
+        // Show toast notification
+        showToast(
+            `Novo agendamento: ${fullAppointment.patientName} - ${fullAppointment.time}`,
+            'info',
+            4000
+        );
+    };
+
+    const handleRealtimeUpdate = (updatedAppointment: any) => {
+        // Check if this is a local update (prevent loop)
+        if (localUpdateIdsRef.current.has(updatedAppointment.id)) {
+            console.log('🔄 [Realtime] Ignoring UPDATE - local update:', updatedAppointment.id);
+            return;
+        }
+
+        console.log('🔄 [Realtime] Processing UPDATE:', updatedAppointment);
+
+        setAppointments(prev => prev.map(a => {
+            if (a.id === updatedAppointment.id) {
+                // Resolve names
+                const patientObj = patients.find(p => p.id === updatedAppointment.patient_id);
+                const professionalObj = professionals.find(p => p.id === updatedAppointment.professional_id);
+
+                return {
+                    ...a,
+                    ...updatedAppointment,
+                    patientName: patientObj?.name || a.patientName || 'Desconhecido',
+                    professionalName: professionalObj?.name || professionalObj?.email || a.professionalName || 'Profissional',
+                    type: updatedAppointment.service || a.type || 'AGENDA'
+                };
+            }
+            return a;
+        }));
+    };
+
+    const handleRealtimeDelete = (appointmentId: string) => {
+        // Check if this is a local update (prevent loop)
+        if (localUpdateIdsRef.current.has(appointmentId)) {
+            console.log('🔄 [Realtime] Ignoring DELETE - local update:', appointmentId);
+            return;
+        }
+
+        console.log('🗑️ [Realtime] Processing DELETE:', appointmentId);
+
+        setAppointments(prev => prev.filter(a => a.id !== appointmentId));
+    };
 
     // Actions - Patients
     const addPatient = async (patient: Partial<Patient>) => {
@@ -185,6 +272,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         try {
             const newAppointmentData = await appointmentService.create(appointment);
 
+            // Mark as local update to prevent Realtime loop
+            addLocalUpdateId(newAppointmentData.id);
+
             // Resolve Names for UI
             const patientObj = patients.find(p => p.id === newAppointmentData.patient_id);
             const professionalObj = professionals.find(p => p.id === newAppointmentData.professional_id);
@@ -210,6 +300,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             console.log('🔄 [AppContext] Iniciando atualização de agendamento:', appointment);
             const updatedData = await appointmentService.update(appointment.id, appointment);
             console.log('✅ [AppContext] Agendamento atualizado no banco:', updatedData);
+
+            // Mark as local update to prevent Realtime loop
+            addLocalUpdateId(appointment.id);
 
             setAppointments(prev => prev.map(a => {
                 if (a.id === appointment.id) {
@@ -244,6 +337,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const deleteAppointment = async (id: string) => {
         try {
+            // Mark as local update to prevent Realtime loop
+            addLocalUpdateId(id);
+
             await appointmentService.delete(id);
             setAppointments(prev => prev.filter(a => a.id !== id));
         } catch (err: any) {
@@ -281,7 +377,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             addAppointment, updateAppointment, deleteAppointment,
             addBlockedDay, removeBlockedDay,
             refreshData,
-            isLoading, error
+            isLoading, error,
+            // Realtime handlers
+            handleRealtimeInsert,
+            handleRealtimeUpdate,
+            handleRealtimeDelete
         }}>
             {children}
         </AppContext.Provider>

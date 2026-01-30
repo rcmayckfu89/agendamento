@@ -12,6 +12,7 @@ export type MedicationRow = Database['public']['Tables']['medications']['Row'];
 // Enums from DB
 export type UserRole = Database['public']['Enums']['app_role'];
 export type AppointmentStatus = Database['public']['Enums']['appointment_status'];
+export type QueueStatus = Database['public']['Enums']['queue_status_type']; // New Enum
 
 // --- Domain Interfaces (Frontend Logic) ---
 
@@ -69,6 +70,12 @@ export interface Appointment extends AppointmentRow {
     patientName?: string;
     professionalName?: string;
     type?: ServiceType; // Maps to 'service' column
+
+    // Queue Management Fields (Added via Migration)
+    queue_status?: QueueStatus;
+    called_at?: string;
+    service_location?: string;
+    duration_minutes?: number;
 }
 
 export interface BlockedDay extends BlockedDayRow { }
@@ -120,6 +127,11 @@ export interface AppContextType {
     // UI/Loading State
     isLoading: boolean;
     error: string | null;
+
+    // Realtime Handlers
+    handleRealtimeInsert?: (appointment: any) => void;
+    handleRealtimeUpdate?: (appointment: any) => void;
+    handleRealtimeDelete?: (appointmentId: string) => void;
 }
 
 export interface StatData {

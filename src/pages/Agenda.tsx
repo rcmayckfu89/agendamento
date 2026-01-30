@@ -1,12 +1,23 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { Appointment, ServiceType } from '../types';
 import { daysOfWeek, weekDaySlugs } from '../constants/weekConfig';
 import { formatDateToYYYYMMDD, getTodayLocalStr } from '../utils/dateUtils';
+import { useRealtimeAppointments } from '../hooks/useRealtimeAppointments';
 
 export const Agenda: React.FC = () => {
-    const { professionals, patients, appointments, addAppointment, deleteAppointment, blockedDays } = useApp();
+    const {
+        professionals,
+        patients,
+        appointments,
+        addAppointment,
+        deleteAppointment,
+        blockedDays,
+        handleRealtimeInsert,
+        handleRealtimeUpdate,
+        handleRealtimeDelete
+    } = useApp();
 
     // Mount/Unmount logging for debugging
     useEffect(() => {
@@ -52,6 +63,26 @@ export const Agenda: React.FC = () => {
     };
 
     const weekDates = getWeekDates(currentDate);
+
+    // Calculate date range for Realtime subscription
+    const dateRange = useMemo(() => {
+        if (weekDates.length === 0) return { startDate: '', endDate: '' };
+
+        const startDate = formatDateToYYYYMMDD(weekDates[0]);
+        const endDate = formatDateToYYYYMMDD(weekDates[weekDates.length - 1]);
+
+        return { startDate, endDate };
+    }, [weekDates]);
+
+    // Subscribe to Realtime updates for the visible week
+    useRealtimeAppointments({
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+        onInsert: handleRealtimeInsert,
+        onUpdate: handleRealtimeUpdate,
+        onDelete: handleRealtimeDelete,
+        enabled: !!dateRange.startDate && !!dateRange.endDate
+    });
 
     // --- Logic to check if a specific day/time is valid for a type ---
     const validateAppointment = (profId: string, dateStr: string, timeStr: string, type: ServiceType): { valid: boolean, error?: string } => {
@@ -327,6 +358,9 @@ export const Agenda: React.FC = () => {
                                             if (type === 'HIPERDIA') colorClass = 'bg-orange-600 text-white border-orange-400';
                                             if (type === 'PRÉ-NATAL') colorClass = 'bg-pink-600 text-white border-pink-400';
                                             if (type === 'PUERICULTURA') colorClass = 'bg-teal-700 text-white border-teal-500';
+                                            if (type === 'CITOPATOLÓGICO') colorClass = 'bg-cyan-600 text-white border-cyan-400';
+                                            if (type === 'VISITA DOMICILIAR') colorClass = 'bg-indigo-600 text-white border-indigo-400';
+                                            if (type === 'DEMANDA ESPONTÂNEA') colorClass = 'bg-red-600 text-white border-red-400';
 
                                             return (
                                                 <div

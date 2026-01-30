@@ -6,93 +6,84 @@ interface StatCardProps {
 }
 
 export const StatCard: React.FC<StatCardProps> = ({ data }) => {
-    const [progress, setProgress] = useState(0);
+    // Map existing categories to new styles from HTML template
+    // Doctor -> Medical Services style
+    // Nurse -> Vaccines style
+    // Urgent -> Alert style
 
-    useEffect(() => {
-        const percentage = data.total > 0 ? (data.current / data.total) * 100 : 0;
-        const timer = setTimeout(() => setProgress(percentage), 100);
-        return () => clearTimeout(timer);
-    }, [data.current, data.total]);
-
+    const isMedical = data.category === 'Doctor';
+    const isNurse = data.category === 'Nurse';
     const isUrgent = data.category === 'Urgent';
 
-    const colorStyles = {
-        violet: {
-            borderHover: 'hover:border-primary',
-            textIcon: 'text-primary'
-        },
-        green: {
-            borderHover: 'hover:border-accent',
-            textIcon: 'text-accent'
-        },
-        sky: {
-            borderHover: 'hover:border-sky-600',
-            textIcon: 'text-sky-600'
-        },
-        destructive: {
-            borderHover: 'hover:border-destructive',
-            textIcon: 'text-destructive'
-        }
+    // Configuração baseada na categoria
+    const getConfig = () => {
+        if (isMedical) return {
+            bg: 'bg-white dark:bg-slate-800',
+            border: 'border-slate-100 dark:border-slate-700',
+            hover: 'hover:border-accent-purple/40',
+            iconBg: 'bg-purple-50 dark:bg-purple-900/20',
+            iconColor: 'text-accent-purple',
+            label: 'MÉDICO',
+            mainText: 'text-slate-900 dark:text-white',
+            subText: 'text-slate-300 dark:text-slate-600',
+            footer: 'EM ATENDIMENTO',
+            footerColor: 'text-slate-400'
+        };
+        if (isNurse) return {
+            bg: 'bg-white dark:bg-slate-800',
+            border: 'border-slate-100 dark:border-slate-700',
+            hover: 'hover:border-accent-teal/40',
+            iconBg: 'bg-teal-50 dark:bg-teal-900/20',
+            iconColor: 'text-accent-teal',
+            label: 'ENFERMEIRA',
+            mainText: 'text-slate-900 dark:text-white',
+            subText: 'text-slate-300 dark:text-slate-600',
+            footer: 'TRIAGEM / PROCEDIMENTOS',
+            footerColor: 'text-slate-400'
+        };
+        // Urgent
+        return {
+            bg: 'bg-orange-50/50 dark:bg-orange-950/20',
+            border: 'border-orange-100 dark:border-orange-900/30',
+            hover: 'hover:bg-orange-50 dark:hover:bg-orange-950/30',
+            iconBg: 'bg-orange-100 dark:bg-orange-900/50',
+            iconColor: 'text-orange-600 dark:text-orange-400',
+            label: 'DEMANDAS',
+            mainText: 'text-orange-600 dark:text-orange-500',
+            subText: 'hidden', // No total for urgent usually
+            footer: 'URGÊNCIA EM ESPERA',
+            footerColor: 'text-orange-500 dark:text-orange-400',
+            animateIcon: 'animate-pulse'
+        };
     };
 
-    const styles = isUrgent ? colorStyles.destructive : (colorStyles[data.colorClass as keyof typeof colorStyles] || colorStyles.violet);
+    const config = getConfig();
 
     return (
-        <div className={`group bg-card p-5 rounded-lg border border-border transition-all duration-300 animate-sync-slide ${isUrgent ? 'border-destructive/30 bg-destructive/5' : 'hover:border-primary shadow-sm hover:shadow-md'} active-click`}>
-            <div className="flex justify-between items-start mb-6">
-                <p className="font-bold text-[13px] uppercase tracking-[0.15em] text-muted-foreground font-display">
-                    {data.category === 'Urgent' ? 'Demandas' : data.category === 'Doctor' ? 'Médico' : data.category === 'Nurse' ? 'Enfermeira' : 'Técnica'}
-                </p>
-                <span className={`material-symbols-outlined text-[28px] ${styles.textIcon}`}>
-                    {data.icon}
+        <div className={`${config.bg} p-6 rounded-2xl card-shadow border ${config.border} flex flex-col justify-between group ${config.hover} transition-all duration-300 animate-sync-slide`}>
+            <div className="flex justify-between items-start mb-8">
+                <span className={`text-xs font-bold uppercase tracking-widest ${isUrgent ? 'text-orange-600 dark:text-orange-400' : 'text-slate-400'}`}>
+                    {config.label}
                 </span>
+                <div className={`p-2 rounded-lg ${config.iconBg} ${config.iconColor} ${config.animateIcon || ''}`}>
+                    <span className="material-symbols-outlined">{data.icon}</span>
+                </div>
             </div>
 
-            <div className="flex items-end justify-between">
-                <div className="flex-1">
-                    <div className="flex items-baseline gap-1.5">
-                        <span className={`text-5xl font-bold font-mono tracking-tighter ${isUrgent ? 'text-destructive' : 'text-foreground'}`}>
-                            {data.current}
-                        </span>
-                        {!isUrgent && (
-                            <span className="text-2xl font-mono text-muted-foreground opacity-50">
-                                /{data.total}
-                            </span>
-                        )}
-                    </div>
-                    <p className="text-[14px] font-bold text-muted-foreground uppercase tracking-tight mt-1.5 truncate leading-tight">
-                        {data.label}
-                    </p>
-                </div>
-
+            <div className="flex items-baseline gap-1">
+                <span className={`text-6xl font-black tracking-tighter ${config.mainText}`}>
+                    {String(data.current).padStart(2, '0')}
+                </span>
                 {!isUrgent && (
-                    <div className="relative w-12 h-12">
-                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                            <circle
-                                className="text-muted/10"
-                                cx="18"
-                                cy="18"
-                                r="16"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="3"
-                            />
-                            <circle
-                                className={`${isUrgent ? 'text-destructive' : 'text-accent'} transition-all duration-1000 ease-out`}
-                                cx="18"
-                                cy="18"
-                                r="16"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="3"
-                                strokeDasharray="100"
-                                strokeDashoffset={100 - progress}
-                                strokeLinecap="square"
-                            />
-                        </svg>
-                    </div>
+                    <span className={`text-xl font-medium ${config.subText}`}>
+                        / {data.total}
+                    </span>
                 )}
             </div>
+
+            <p className={`text-xs font-bold uppercase mt-2 ${config.footerColor}`}>
+                {config.footer}
+            </p>
         </div>
     );
 };

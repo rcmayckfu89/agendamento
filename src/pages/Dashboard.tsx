@@ -1,484 +1,280 @@
 
-import React, { useMemo, useState, useEffect, useRef } from 'react';
-import ReactDOM from 'react-dom';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { StatCard } from '../components/features/StatCard';
-import { StatData, Appointment } from '../types';
 import { useApp } from '../context/AppContext';
 import { formatDateToYYYYMMDD, getTodayLocalStr } from '../utils/dateUtils';
+import { Appointment, StatData } from '../types';
+import { PatientQueueItem } from '../types/queue';
+
+// Components
+import { DateSelector } from '../components/features/DateSelector';
+import { StatCard } from '../components/features/StatCard';
+import { QueueColumn } from '../components/features/QueueColumn';
+import { QueueActionModal } from '../components/features/QueueActionModal';
 
 export const Dashboard: React.FC = () => {
     const navigate = useNavigate();
-    const { appointments, professionals, updateAppointment, refreshData, isLoading } = useApp();
+    const { appointments, professionals, updateAppointment, refreshData } = useApp();
 
-    // Mount/Unmount logging for debugging
-    useEffect(() => {
-        console.log('🟢 [Dashboard] Mounted');
-        refreshData(); // Ensure fresh data on mount
-        return () => console.log('🔴 [Dashboard] Unmounted');
-    }, []);
-
-    // State for Date Navigation
+    // --- State ---
     const [selectedDate, setSelectedDate] = useState(new Date());
-    const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
-    const datePickerRef = useRef<HTMLDivElement>(null);
-    const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+    const [selectedPatient, setSelectedPatient] = useState<PatientQueueItem | null>(null);
+    const [isActionModalOpen, setIsActionModalOpen] = useState(false);
 
-    // State for Interaction Modal
-    const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-
-    // Close date picker when clicking outside
+    // mount/refresh logic
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
-                setIsDatePickerOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        refreshData();
     }, []);
 
-    // Date helpers
+    // --- Helpers ---
     const todayStr = getTodayLocalStr();
     const selectedDateStr = formatDateToYYYYMMDD(selectedDate);
     const isToday = selectedDateStr === todayStr;
 
-    const isYesterday = () => {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        return selectedDateStr === formatDateToYYYYMMDD(yesterday);
-    };
+    // --- Data Processing (Memoized) ---
 
-    const isTomorrow = () => {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        return selectedDateStr === formatDateToYYYYMMDD(tomorrow);
-    };
-
-    const getDateLabel = () => {
-        if (isToday) return 'Hoje';
-        if (isYesterday()) return 'Ontem';
-        if (isTomorrow()) return 'Amanhã';
-        return selectedDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
-    };
-
-    const navigateDate = (days: number) => {
-        const newDate = new Date(selectedDate);
-        newDate.setDate(newDate.getDate() + days);
-        setSelectedDate(newDate);
-    };
-
-    const goToToday = () => {
-        setSelectedDate(new Date());
-        setIsDatePickerOpen(false);
-    };
-
-    // Auto-refresh data when date changes to ensure we have the latest
-    useEffect(() => {
-        console.log('🔄 [Dashboard] Date change detected:', selectedDateStr);
-        refreshData();
-    }, [selectedDateStr]);
-
-    // Calculate stats based on selected date
-    const stats: StatData[] = useMemo(() => {
-        // Robust filtering in case date includes time components
-        const dateAppts = appointments.filter(a => {
+    // 1. Appointments for Selected Date
+    const dayAppointments = useMemo(() => {
+        return appointments.filter(a => {
             const rowDate = a.date ? a.date.split('T')[0] : '';
             return rowDate === selectedDateStr && a.status !== 'canceled';
-        });
+        }).sort((a, b) => a.time.localeCompare(b.time));
+    }, [appointments, selectedDateStr]);
 
-        console.log(`📊 [Dashboard] Stats recalc. Appts for ${selectedDateStr}:`, dateAppts.length);
-
+    // 2. Stats Calculation
+    const stats: StatData[] = useMemo(() => {
         const countByRole = (role: string) => {
-            return dateAppts.filter(a => {
+            return dayAppointments.filter(a => {
                 const prof = professionals.find(p => p.id === a.professional_id);
+                // Simple mapping just for stats demo
                 return prof?.role === role;
             }).length;
         };
 
-        const totalDocs = professionals.filter(p => p.role === 'medico').length * 10;
-        const totalNurses = professionals.filter(p => p.role === 'enfermeiro').length * 10;
-        const totalTechs = professionals.filter(p => p.role === 'tecnico').length * 10;
-
         const currentDocs = countByRole('medico');
         const currentNurses = countByRole('enfermeiro');
-        const currentTechs = countByRole('tecnico');
+        const urgentCount = dayAppointments.filter(a => a.type === 'DEMANDA ESPONTÂNEA' || a.type === 'HIPERDIA').length;
 
-        const urgentCount = dateAppts.filter(a => a.type === 'DEMANDA ESPONTÂNEA').length;
-
-        const dayLabel = isToday ? 'agendados hoje' : `em ${getDateLabel().toLowerCase()}`;
+        // Mock totals for now based on some logic (e.g. 10 slots per prof)
+        const totalDocs = professionals.filter(p => p.role === 'medico').length * 15;
+        const totalNurses = professionals.filter(p => p.role === 'enfermeiro').length * 15;
 
         return [
-            { category: 'Doctor', current: currentDocs, total: Math.max(currentDocs, totalDocs || 10), label: dayLabel, icon: 'medical_services', colorClass: 'violet', ringColorClass: 'text-violet-500' },
-            { category: 'Nurse', current: currentNurses, total: Math.max(currentNurses, totalNurses || 10), label: dayLabel, icon: 'health_and_safety', colorClass: 'green', ringColorClass: 'text-green-500' },
-
-            { category: 'Urgent', current: urgentCount, total: 10, label: 'demandas espontâneas', icon: 'priority_high', colorClass: 'destructive', ringColorClass: '' },
+            { category: 'Doctor', current: currentDocs, total: Math.max(currentDocs, totalDocs), label: '', icon: 'medical_services', colorClass: '', ringColorClass: '' },
+            { category: 'Nurse', current: currentNurses, total: Math.max(currentNurses, totalNurses), label: '', icon: 'vaccines', colorClass: '', ringColorClass: '' },
+            { category: 'Urgent', current: urgentCount, total: 0, label: '', icon: 'priority_high', colorClass: '', ringColorClass: '' },
         ];
-    }, [appointments, professionals, selectedDateStr]);
+    }, [dayAppointments, professionals]);
 
-    // Get appointments for selected date
-    const dateAppointments = useMemo(() => {
-        return appointments
-            .filter(a => {
-                const rowDate = a.date ? a.date.split('T')[0] : '';
-                return rowDate === selectedDateStr && a.status === 'scheduled';
-            })
-            .sort((a, b) => a.time.localeCompare(b.time));
-    }, [appointments, selectedDateStr]);
+    // 3. Queue Mapping
+    // This transforms Appointment[] -> PatientQueueItem[] for columns
+    const mapToQueueItem = (appt: Appointment): PatientQueueItem => {
+        // Mocking age/id logic since we don't have it fully populated yet in type
+        const patientAge = 35; // placeholder
 
-    const getNextForRole = (role: string) => {
-        return dateAppointments.filter(a => {
-            const prof = professionals.find(p => p.id === a.professional_id);
-            const roleMap: Record<string, string> = {
-                'Médico': 'medico',
-                'Enfermeira': 'enfermeiro',
-                'Técnica': 'tecnico'
-            };
-            return prof?.role === roleMap[role];
-        });
-    };
-
-    const handleAppointmentClick = (app: Appointment) => {
-        setSelectedAppointment(app);
-        setIsModalOpen(true);
-    };
-
-    const updateStatus = (status: 'finished' | 'no_show' | 'canceled') => {
-        if (selectedAppointment) {
-            console.log('📝 [Dashboard] Atualizando status do agendamento:', {
-                id: selectedAppointment.id,
-                paciente: selectedAppointment.patientName,
-                status: status,
-                data: selectedAppointment.date
-            });
-            updateAppointment({
-                ...selectedAppointment,
-                status: status
-            });
-            setIsModalOpen(false);
-            setSelectedAppointment(null);
+        let status: PatientQueueItem['status'] = 'waiting';
+        // Use real queue status from DB if available
+        if (appt.queue_status) {
+            status = appt.queue_status as PatientQueueItem['status'];
+        } else {
+            // Fallback logic for legacy data
+            if (appt.type === 'DEMANDA ESPONTÂNEA') status = 'urgent';
+            if (appt.status === 'finished') status = 'return';
+            if (appt.type === 'PRÉ-NATAL' || appt.type === 'CITOPATOLÓGICO') status = 'procedure';
         }
+
+        return {
+            id: appt.id!,
+            originalAppointmentId: appt.id!,
+            name: appt.patientName || 'Paciente',
+            patientId: appt.patient_id?.substring(0, 4) || '0000',
+            age: patientAge,
+            status: status,
+            time: appt.called_at ? new Date(appt.called_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : appt.time,
+            professionalName: appt.professionalName,
+            location: appt.service_location || undefined,
+            duration: appt.duration_minutes ? `${appt.duration_minutes}min` : undefined,
+            serviceType: appt.type
+        };
     };
 
-    const emptyMessage = isToday
-        ? 'Agenda livre para'
-        : `Sem agendamentos ${getDateLabel().toLowerCase()} para`;
+    const medicalQueue = useMemo(() => {
+        return dayAppointments
+            .filter(a => {
+                const prof = professionals.find(p => p.id === a.professional_id);
+                return prof?.role === 'medico';
+            })
+            .map(mapToQueueItem);
+    }, [dayAppointments, professionals]);
+
+    const nurseQueue = useMemo(() => {
+        return dayAppointments
+            .filter(a => {
+                const prof = professionals.find(p => p.id === a.professional_id);
+                return prof?.role === 'enfermeiro' || prof?.role === 'tecnico';
+            })
+            .map(mapToQueueItem);
+    }, [dayAppointments, professionals]);
+
+
+    // --- Handlers ---
+    const handlePatientClick = (patient: PatientQueueItem) => {
+        setSelectedPatient(patient);
+        setIsActionModalOpen(true);
+    };
+
+    const handleCallPatient = async (location: string) => {
+        if (!selectedPatient) return;
+
+        await updateAppointment({
+            id: selectedPatient.originalAppointmentId,
+            queue_status: 'in-call', // Using new DB Enum
+            called_at: new Date().toISOString(),
+            service_location: location
+        });
+
+        setIsActionModalOpen(false);
+        refreshData();
+    };
+
+    const handleFinishPatient = async () => {
+        if (!selectedPatient) return;
+
+        await updateAppointment({
+            id: selectedPatient.originalAppointmentId,
+            status: 'finished',
+            queue_status: 'waiting' // Remove from queue view or keep as 'return'? Let's clear it from active
+        });
+
+        setIsActionModalOpen(false);
+        refreshData();
+    };
+
+    const handleNoShow = async () => {
+        if (!selectedPatient) return;
+
+        await updateAppointment({
+            id: selectedPatient.originalAppointmentId,
+            status: 'no_show',
+            queue_status: 'waiting' // Effectively removes from active board if we filter
+        });
+
+        setIsActionModalOpen(false);
+        refreshData();
+    };
+
+    const handleCancel = async () => {
+        if (!selectedPatient) return;
+
+        await updateAppointment({
+            id: selectedPatient.originalAppointmentId,
+            status: 'canceled',
+            queue_status: 'waiting'
+        });
+
+        setIsActionModalOpen(false);
+        refreshData();
+    };
 
     return (
-        <div className="flex flex-col h-full relative">
-            {/* Header - heroic typographic style */}
-            <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 md:mb-12 animate-sync-slide">
-                <div className="relative">
-                    <h2 className="text-4xl md:text-6xl font-black tracking-tighter text-foreground font-display">
+        <div className="max-w-7xl mx-auto px-6 py-10 lg:px-12 animate-fade-in">
+            {/* Header */}
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+                <div>
+                    <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-3 font-display">
                         Visão Geral
-                    </h2>
-                    <div className="flex items-center gap-2 mt-4">
-                        <p className="text-base md:text-lg text-muted-foreground font-bold uppercase tracking-[0.2em] opacity-80">
-                            EFICIÊNCIA CLÍNICA <span className="text-accent">•</span> {getDateLabel()}
-                        </p>
-
-                        {/* Date Picker Pill */}
-                        <div ref={datePickerRef} className="relative">
-                            <button
-                                onClick={(e) => {
-                                    const rect = e.currentTarget.getBoundingClientRect();
-                                    setDropdownPosition({
-                                        top: rect.bottom + 8,
-                                        left: rect.left
-                                    });
-                                    setIsDatePickerOpen(!isDatePickerOpen);
-                                }}
-                                className={`
-                                    inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider
-                                    transition-all duration-300 ease-out active-click
-                                    ${isToday
-                                        ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                                        : 'bg-accent text-accent-foreground hover:bg-accent/90'
-                                    }
-                                    ${isDatePickerOpen ? 'ring-2 ring-accent/30 shadow-md' : 'hover:shadow-sm'}
-                                `}
-                            >
-                                <span className="material-symbols-outlined text-sm">calendar_month</span>
-                                <span>{getDateLabel()}</span>
-                                <span className={`material-symbols-outlined text-sm transition-transform duration-300 ${isDatePickerOpen ? 'rotate-180' : ''}`}>
-                                    expand_more
-                                </span>
-                            </button>
-
-                            {/* Expanded Date Navigator - Rendered via Portal */}
-                            {ReactDOM.createPortal(
-                                <div
-                                    className={`
-                                        fixed z-[10000]
-                                        bg-card border border-border rounded-xl shadow-2xl
-                                        overflow-hidden
-                                        transition-all duration-300 ease-out origin-top-left
-                                        ${isDatePickerOpen
-                                            ? 'opacity-100 scale-100 translate-y-0'
-                                            : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
-                                        }
-                                    `}
-                                    style={{
-                                        top: `${dropdownPosition.top}px`,
-                                        left: `${dropdownPosition.left}px`
-                                    }}
-                                >
-                                    <div className="p-3 min-w-[280px]">
-                                        {/* Navigation Row */}
-                                        <div className="flex items-center justify-between mb-3">
-                                            <button
-                                                onClick={() => navigateDate(-1)}
-                                                className="p-2 rounded-lg hover:bg-accent transition-colors"
-                                                title="Dia anterior"
-                                            >
-                                                <span className="material-symbols-outlined">chevron_left</span>
-                                            </button>
-
-                                            <div className="text-center">
-                                                <p className="text-lg font-bold text-foreground">
-                                                    {selectedDate.toLocaleDateString('pt-BR', { weekday: 'long' })}
-                                                </p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {selectedDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
-                                                </p>
-                                            </div>
-
-                                            <button
-                                                onClick={() => navigateDate(1)}
-                                                className="p-2 rounded-lg hover:bg-accent transition-colors"
-                                                title="Próximo dia"
-                                            >
-                                                <span className="material-symbols-outlined">chevron_right</span>
-                                            </button>
-                                        </div>
-
-                                        {/* Quick Access Buttons */}
-                                        <div className="grid grid-cols-3 gap-2 mb-3">
-                                            {[-1, 0, 1].map(offset => {
-                                                const date = new Date();
-                                                date.setDate(date.getDate() + offset);
-                                                const dateStr = formatDateToYYYYMMDD(date);
-                                                const isSelected = selectedDateStr === dateStr;
-                                                const label = offset === -1 ? 'Ontem' : offset === 0 ? 'Hoje' : 'Amanhã';
-
-                                                return (
-                                                    <button
-                                                        key={offset}
-                                                        onClick={() => {
-                                                            setSelectedDate(date);
-                                                            setIsDatePickerOpen(false);
-                                                        }}
-                                                        className={`
-                                                            px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all active-click
-                                                            ${isSelected
-                                                                ? 'bg-primary text-primary-foreground shadow-md'
-                                                                : 'bg-secondary/50 hover:bg-secondary text-foreground'
-                                                            }
-                                                        `}
-                                                    >
-                                                        <span className="block text-[10px] opacity-70 font-mono">
-                                                            {date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                                                        </span>
-                                                        <span>{label}</span>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-
-                                        {/* Go to Today Button */}
-                                        {!isToday && (
-                                            <button
-                                                onClick={goToToday}
-                                                className="w-full py-2 px-4 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
-                                            >
-                                                <span className="material-symbols-outlined text-base">today</span>
-                                                Voltar para Hoje
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>,
-                                document.body
-                            )}
-                        </div>
-
-                        {/* Visual indicator when not today */}
-                        {!isToday && (
-                            <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 animate-pulse">
-                                <span className="material-symbols-outlined text-sm">history</span>
-                                visualizando outro dia
-                            </span>
-                        )}
+                    </h1>
+                    <div className="flex items-center gap-3">
+                        <span className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                            Eficiência Clínica • {isToday ? 'Hoje' : selectedDate.toLocaleDateString()}
+                        </span>
+                        <DateSelector
+                            selectedDate={selectedDate}
+                            onDateChange={setSelectedDate}
+                            isToday={isToday}
+                        />
                     </div>
                 </div>
-                <div className="flex items-center gap-2 md:gap-4 w-full sm:w-auto">
+                <div className="flex items-center gap-3">
                     <button
                         onClick={() => navigate('/agenda')}
-                        className="flex-1 sm:flex-none bg-primary text-primary-foreground font-bold py-2 md:py-3 px-4 md:px-6 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/95 transition-all shadow-sm active-click text-xs md:text-sm uppercase tracking-widest border border-white/10"
+                        className="flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-xl shadow-lg hover:opacity-90 transition-opacity active-click"
                     >
-                        <span className="material-symbols-outlined text-lg md:text-xl">event</span>
-                        <span className="hidden sm:inline">Agenda Semanal</span>
-                        <span className="sm:hidden">Agenda</span>
+                        <span className="material-symbols-outlined">event_note</span>
+                        AGENDA SEMANAL
                     </button>
                     <button
                         onClick={() => navigate('/patients')}
-                        className="flex-1 sm:flex-none bg-white text-primary font-bold py-2 md:py-3 px-4 md:px-6 rounded-lg flex items-center justify-center gap-2 hover:bg-secondary transition-all border border-border shadow-sm active-click text-xs md:text-sm uppercase tracking-widest"
+                        className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors active-click"
                     >
-                        <span className="material-symbols-outlined text-lg md:text-xl">group</span>
-                        <span className="hidden sm:inline">Base de Pacientes</span>
-                        <span className="sm:hidden">Pacientes</span>
+                        <span className="material-symbols-outlined">group</span>
+                        BASE DE PACIENTES
                     </button>
                 </div>
             </header>
 
-            {/* Stats Grid - responsive: 2 cols on mobile, 4 on desktop */}
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-10">
-                {stats.map((stat) => (
-                    <StatCard key={stat.category} data={stat} />
+            {/* Stats Section */}
+            <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                {stats.map((stat, idx) => (
+                    <StatCard key={idx} data={stat} />
                 ))}
-            </div>
+            </section>
 
-            <div className="flex-1 overflow-y-auto pr-0 md:pr-2">
-                <div className="flex items-center gap-3 mb-6 md:mb-8 animate-sync-slide" style={{ animationDelay: '0.1s' }}>
-                    <h3 className="text-xl md:text-2xl font-bold tracking-tight text-foreground font-display">
-                        {isToday ? 'Fila de Atendimento' : `Agenda: ${getDateLabel()}`}
-                    </h3>
-                    <div className="h-px flex-1 bg-border hidden md:block"></div>
-                    {!isToday && (
-                        <span className="text-[10px] font-mono font-bold bg-accent text-accent-foreground px-2 py-1 rounded-full border border-white/10 uppercase">
-                            {selectedDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                        </span>
-                    )}
-                </div>
-                <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4 -mt-2 md:-mt-4">
-                    {isToday ? 'Toque para alterar o status.' : 'Atendimentos pendentes deste dia.'}
-                </p>
-
-                <div className="space-y-4 md:space-y-6">
-                    {/* Doctor Section */}
-                    <div className="flex items-start">
-                        <div className="flex flex-col items-center mr-3 md:mr-6 h-full">
-                            <div className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full bg-violet-100 border-2 md:border-4 border-violet-50 shrink-0">
-                                <span className="material-symbols-outlined text-violet-600 text-lg md:text-2xl">medical_services</span>
+            {/* Queue Section */}
+            <section>
+                <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-4">
+                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white font-display">Fila de Atendimento</h2>
+                        {isToday && (
+                            <div className="flex items-center gap-2 px-3 py-1 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-full animate-pulse">
+                                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                                <span className="text-xs font-bold text-green-700 dark:text-green-400 uppercase tracking-wider">Tempo Real</span>
                             </div>
-                        </div>
-                        <div className="pb-3 md:pb-4 flex-1 min-w-0">
-                            <h4 className="font-semibold text-lg text-foreground mb-3">Médico</h4>
-                            <div className="space-y-3">
-                                {getNextForRole('Médico').length > 0 ? (
-                                    getNextForRole('Médico').map(app => (
-                                        <div
-                                            key={app.id}
-                                            onClick={() => handleAppointmentClick(app)}
-                                            className="bg-card border border-border rounded-lg p-5 shadow-sm flex justify-between items-center cursor-pointer hover:border-primary hover:shadow-md transition-all group active-click border-l-[6px] border-l-primary"
-                                        >
-                                            <div className="min-w-0 flex-1">
-                                                <p className="font-bold text-lg md:text-xl text-foreground group-hover:text-primary transition-colors truncate font-display">{app.patientName}</p>
-                                                <div className="flex items-center gap-3 text-[13px] font-bold text-muted-foreground uppercase mt-2">
-                                                    <span className="bg-secondary px-2 py-1 rounded-md">{app.type}</span>
-                                                    <span className="opacity-50">•</span>
-                                                    <span className="truncate">{app.professionalName}</span>
-                                                </div>
-                                            </div>
-                                            <span className="text-primary font-bold font-mono text-2xl ml-6 bg-primary/5 px-3 py-1.5 rounded-lg border border-primary/10">{app.time}</span>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="bg-card border border-border border-dashed rounded-xl p-4 flex justify-center text-muted-foreground text-sm italic">
-                                        {emptyMessage} Médicos.
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                        )}
                     </div>
-
-                    {/* Nurse Section */}
-                    <div className="flex items-start">
-                        <div className="flex flex-col items-center mr-6 h-full">
-                            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 border-4 border-green-50 shrink-0">
-                                <span className="material-symbols-outlined text-green-600">health_and_safety</span>
-                            </div>
-                        </div>
-                        <div className="pb-4 flex-1">
-                            <h4 className="font-semibold text-lg text-foreground mb-3">Enfermeira</h4>
-                            <div className="space-y-3">
-                                {getNextForRole('Enfermeira').length > 0 ? (
-                                    getNextForRole('Enfermeira').map(app => (
-                                        <div
-                                            key={app.id}
-                                            onClick={() => handleAppointmentClick(app)}
-                                            className="bg-card border border-border rounded-lg p-5 shadow-sm flex justify-between items-center cursor-pointer hover:border-accent hover:shadow-md transition-all group active-click border-l-[6px] border-l-accent"
-                                        >
-                                            <div className="min-w-0 flex-1">
-                                                <p className="font-bold text-lg md:text-xl text-foreground group-hover:text-accent transition-colors truncate font-display">{app.patientName}</p>
-                                                <div className="flex items-center gap-3 text-[13px] font-bold text-muted-foreground uppercase mt-2">
-                                                    <span className="bg-secondary px-2 py-1 rounded-md">{app.type}</span>
-                                                    <span className="opacity-50">•</span>
-                                                    <span className="truncate">{app.professionalName}</span>
-                                                </div>
-                                            </div>
-                                            <span className="text-accent font-bold font-mono text-2xl ml-6 bg-accent/5 px-3 py-1.5 rounded-lg border border-accent/10">{app.time}</span>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="bg-card border border-border border-dashed rounded-xl p-4 flex justify-center text-muted-foreground text-sm italic">
-                                        {emptyMessage} Enfermeiras.
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-
-                </div>
-            </div>
-
-            {/* Modal de Status */}
-            {isModalOpen && selectedAppointment && (
-                <div className="fixed inset-0 bg-primary/20 backdrop-blur-sm z-[10001] flex items-center justify-center p-4">
-                    <div className="bg-card rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-precision-fade border border-border">
-                        <div className="px-6 py-5 border-b border-border bg-muted/30">
-                            <h3 className="font-bold text-lg text-foreground font-display">Gerenciar Atendimento</h3>
-                            <div className="flex items-center gap-2 mt-2">
-                                <span className="font-mono text-sm bg-primary text-primary-foreground px-2 py-0.5 rounded-full">{selectedAppointment.time}</span>
-                                <span className="font-bold text-sm text-foreground truncate">{selectedAppointment.patientName}</span>
-                            </div>
-                        </div>
-                        <div className="p-6 space-y-3">
-                            <button
-                                onClick={() => updateStatus('finished')}
-                                className="w-full bg-accent text-accent-foreground font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-all border border-accent/20 active-click uppercase text-xs tracking-widest"
-                            >
-                                <span className="material-symbols-outlined text-xl">check_circle</span>
-                                Concluir Atendimento
-                            </button>
-
-                            <button
-                                onClick={() => updateStatus('no_show')}
-                                className="w-full bg-secondary text-secondary-foreground font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-all border border-border active-click uppercase text-xs tracking-widest"
-                            >
-                                <span className="material-symbols-outlined text-xl">person_off</span>
-                                Paciente Faltou
-                            </button>
-
-                            <button
-                                onClick={() => updateStatus('canceled')}
-                                className="w-full bg-destructive/10 text-destructive font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-all border border-destructive/20 active-click uppercase text-xs tracking-widest"
-                            >
-                                <span className="material-symbols-outlined text-xl">cancel</span>
-                                Cancelar Agendamento
-                            </button>
-
-                            <button
-                                onClick={() => setIsModalOpen(false)}
-                                className="w-full mt-4 text-muted-foreground hover:bg-muted py-2 px-4 rounded-lg text-xs font-bold uppercase tracking-wider transition-all"
-                            >
-                                Voltar
-                            </button>
-                        </div>
+                    <div className="flex gap-2">
+                        {/* Filter/Action Placeholders */}
+                        <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-400">
+                            <span className="material-symbols-outlined">filter_list</span>
+                        </button>
                     </div>
                 </div>
-            )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <QueueColumn
+                        title="Consultório Médico"
+                        icon="medical_services"
+                        iconBgClass="bg-purple-100 dark:bg-purple-900/30"
+                        iconTextClass="text-accent-purple"
+                        patientCount={medicalQueue.length}
+                        patients={medicalQueue}
+                        onLinkNewPatient={() => navigate('/agenda')}
+                        onPatientClick={handlePatientClick}
+                    />
+
+                    <QueueColumn
+                        title="Enfermeira / Triagem"
+                        icon="vaccines"
+                        iconBgClass="bg-teal-100 dark:bg-teal-900/30"
+                        iconTextClass="text-accent-teal"
+                        patientCount={nurseQueue.length}
+                        patients={nurseQueue}
+                        onLinkNewPatient={() => navigate('/agenda')}
+                        onPatientClick={handlePatientClick}
+                    />
+                </div>
+            </section>
+
+            {/* Action Modal */}
+            <QueueActionModal
+                isOpen={isActionModalOpen}
+                onClose={() => setIsActionModalOpen(false)}
+                patient={selectedPatient}
+                onCall={handleCallPatient}
+                onFinish={handleFinishPatient}
+                onNoShow={handleNoShow}
+                onCancel={handleCancel}
+            />
         </div>
     );
 };

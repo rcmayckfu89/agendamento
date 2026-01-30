@@ -11,6 +11,7 @@ import { Medications } from './pages/Medications';
 import { AppProvider } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LayoutProvider, useLayout } from './context/LayoutContext';
+import { ToastProvider } from './context/ToastContext';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -107,11 +108,13 @@ const App: React.FC = () => {
   return (
     <HashRouter>
       <AuthProvider>
-        <AppProvider>
-          <LayoutProvider>
-            <AppContent />
-          </LayoutProvider>
-        </AppProvider>
+        <ToastProvider>
+          <AppProvider>
+            <LayoutProvider>
+              <AppContent />
+            </LayoutProvider>
+          </AppProvider>
+        </ToastProvider>
       </AuthProvider>
     </HashRouter>
   );
