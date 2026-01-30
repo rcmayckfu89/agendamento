@@ -39,7 +39,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
             </div>
 
             {/* Right Column - Form Content */}
-            <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-8 sm:p-16 bg-white dark:bg-slate-900 transition-colors duration-300">
+            <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-6 sm:p-12 lg:p-16 bg-white dark:bg-slate-900 transition-colors duration-300 min-h-[100dvh]">
                 <div className="w-full max-w-md animate-scale-up">
                     {children}
                 </div>

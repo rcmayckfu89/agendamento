@@ -61,7 +61,7 @@ export interface Professional {
 }
 
 // Appointment: Extends Row but often needs joined data (Patient Name, Prof Name)
-export interface Appointment extends AppointmentRow {
+export interface Appointment extends Omit<AppointmentRow, 'queue_status' | 'duration_minutes' | 'called_at' | 'service_location'> {
     // These are needed for the UI List but come from Joins
     patient?: PatientRow; // Expanded relation
     professional?: ProfileRow; // Expanded relation

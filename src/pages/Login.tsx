@@ -72,14 +72,14 @@ export const Login: React.FC = () => {
     return (
         <AuthLayout>
             {/* Mobile Header (Only visible on small screens) */}
-            <div className="lg:hidden flex items-center gap-2 mb-12 text-primary-dark dark:text-cyan-400">
+            <div className="lg:hidden flex items-center gap-2 mb-8 text-primary-dark dark:text-cyan-400">
                 <span className="material-symbols-outlined text-4xl">event_upcoming</span>
                 <span className="text-2xl font-extrabold tracking-tight">Agenda<span className="text-cyan-600 dark:text-cyan-400">+</span></span>
             </div>
 
             {/* Title Section */}
-            <div className="mb-12 text-center lg:text-left">
-                <h2 className="text-4xl font-extrabold text-slate-900 dark:text-white mb-3">Bem-vindo de volta</h2>
+            <div className="mb-8 lg:mb-12 text-center lg:text-left">
+                <h2 className="text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-white mb-2 lg:mb-3">Bem-vindo de volta</h2>
                 <p className="text-secondary-text dark:text-slate-400 text-lg">Acesse sua conta para continuar</p>
             </div>
 
@@ -163,7 +163,7 @@ export const Login: React.FC = () => {
             </div>
 
             {/* Footer / Theme Toggle */}
-            <div className="mt-auto pt-12 flex flex-col items-center gap-6">
+            <div className="mt-auto pt-8 lg:pt-12 flex flex-col items-center gap-6">
                 <div className="flex items-center gap-2">
                     <p className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
                         Agenda+ v2.0.4 • Gestão Pública
