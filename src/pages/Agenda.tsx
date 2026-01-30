@@ -246,18 +246,18 @@ export const Agenda: React.FC = () => {
     return (
         <div className="flex flex-col h-full relative animate-precision-fade">
             {/* Header - responsive */}
-            <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 md:mb-8">
-                <div>
-                    <h2 className="text-2xl md:text-4xl font-bold tracking-tighter text-foreground font-display">Agenda Clínica</h2>
-                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1 hidden sm:block opacity-60">Sincronização de Atendimentos</p>
+            <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6 md:mb-8">
+                <div className="w-full lg:w-auto text-center lg:text-left">
+                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tighter text-foreground font-display leading-tight">Agenda Clínica</h2>
+                    <p className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1 opacity-60">Sincronização de Atendimentos</p>
                 </div>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
-                    <div className="flex flex-col">
-                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Profissional:</label>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+                    <div className="flex-1 sm:w-64">
+                        <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">Profissional:</label>
                         <select
                             value={selectedProfId}
                             onChange={(e) => setSelectedProfId(e.target.value)}
-                            className="bg-card border border-border rounded-sm py-2 px-3 text-xs font-bold font-display focus:ring-accent focus:border-accent outline-none uppercase tracking-wide"
+                            className="w-full bg-card border border-border rounded-lg py-2.5 px-3 text-xs font-bold font-display focus:ring-accent focus:border-accent outline-none uppercase tracking-wide transition-all shadow-sm"
                         >
                             {professionals.map(p => (
                                 <option key={p.id} value={p.id}>{p.name} ({p.role})</option>
@@ -266,7 +266,7 @@ export const Agenda: React.FC = () => {
                     </div>
                     <button
                         onClick={handleNewAppointment}
-                        className="bg-accent text-accent-foreground font-bold py-2 md:py-3 px-4 md:px-6 rounded-lg flex items-center justify-center gap-2 hover:bg-accent/90 transition-all shadow-sm sm:mt-5 text-xs uppercase tracking-widest active-click border border-white/10"
+                        className="bg-accent text-accent-foreground font-bold py-3 px-6 rounded-lg flex items-center justify-center gap-2 hover:bg-accent/90 transition-all shadow-md text-[10px] sm:text-xs uppercase tracking-widest active-click border border-white/10 sm:mt-4"
                     >
                         <span className="material-symbols-outlined text-xl text-white">add_circle</span>
                         Novo Agendamento
@@ -276,23 +276,23 @@ export const Agenda: React.FC = () => {
 
             <div className="flex-1 flex flex-col bg-card border border-border rounded-xl shadow-sm min-h-[400px] md:min-h-[600px] overflow-hidden">
                 {/* Navigation Header - responsive */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-2 md:p-4 border-b border-border bg-muted/20 gap-2">
-                    <div className="flex items-center gap-2 md:gap-4 w-full sm:w-auto justify-between sm:justify-start">
-                        <h3 className="text-base md:text-lg font-bold text-foreground capitalize font-display tracking-tight">
+                <div className="flex flex-col sm:flex-row items-center justify-between p-3 md:p-4 border-b border-border bg-muted/20 gap-3">
+                    <div className="flex items-center gap-3 md:gap-4 w-full sm:w-auto justify-between sm:justify-start">
+                        <h3 className="text-sm sm:text-base md:text-lg font-bold text-foreground capitalize font-display tracking-tight">
                             {currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
                         </h3>
-                        <div className="flex items-center gap-1 bg-background rounded-lg border border-border p-0.5">
-                            <button onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() - 7)))} className="p-1 rounded-lg hover:bg-accent hover:text-white transition-colors"><span className="material-symbols-outlined text-lg">chevron_left</span></button>
-                            <button onClick={() => setCurrentDate(new Date())} className="px-2 md:px-3 text-[10px] font-bold uppercase tracking-wider hover:bg-accent hover:text-white rounded-lg transition-colors">Hoje</button>
-                            <button onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() + 7)))} className="p-1 rounded-lg hover:bg-accent hover:text-white transition-colors"><span className="material-symbols-outlined text-lg">chevron_right</span></button>
+                        <div className="flex items-center gap-1 bg-background rounded-lg border border-border p-0.5 shadow-sm">
+                            <button onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() - 7)))} className="p-1 px-2 rounded-lg hover:bg-accent hover:text-white transition-colors"><span className="material-symbols-outlined text-base md:text-lg">chevron_left</span></button>
+                            <button onClick={() => setCurrentDate(new Date())} className="px-3 text-[9px] md:text-[10px] font-bold uppercase tracking-wider hover:bg-accent hover:text-white rounded-md transition-colors h-7 flex items-center">Hoje</button>
+                            <button onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() + 7)))} className="p-1 px-2 rounded-lg hover:bg-accent hover:text-white transition-colors"><span className="material-symbols-outlined text-base md:text-lg">chevron_right</span></button>
                         </div>
                     </div>
-                    {/* Legend - refined labels */}
-                    <div className="hidden md:flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-primary border border-white/20"></div><span>Geral</span></div>
-                        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-orange-600 border border-white/20"></div><span>Hiperdia</span></div>
-                        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-pink-600 border border-white/20"></div><span>Natal</span></div>
-                        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-destructive border border-white/20"></div><span>Bloqueio</span></div>
+                    {/* Legend - hidden on very small screens, scrollable on mobile */}
+                    <div className="flex items-center gap-3 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 no-scrollbar text-[8px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground whitespace-nowrap">
+                        <div className="flex items-center gap-1.5 min-w-fit"><div className="w-2 h-2 bg-primary border border-white/10"></div><span>Geral</span></div>
+                        <div className="flex items-center gap-1.5 min-w-fit"><div className="w-2 h-2 bg-orange-600 border border-white/10"></div><span>Hiperdia</span></div>
+                        <div className="flex items-center gap-1.5 min-w-fit"><div className="w-2 h-2 bg-pink-600 border border-white/10"></div><span>Natal</span></div>
+                        <div className="flex items-center gap-1.5 min-w-fit"><div className="w-2 h-2 bg-destructive border border-white/10"></div><span>Bloqueio</span></div>
                     </div>
                 </div>
 

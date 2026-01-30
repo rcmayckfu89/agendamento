@@ -194,33 +194,33 @@ export const Patients: React.FC = () => {
     return (
         <div className="flex flex-col h-full relative animate-precision-fade">
             {/* Header - heroic typographic style */}
-            <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-8 md:mb-12">
-                <div>
-                    <h2 className="text-3xl md:text-5xl font-bold tracking-tighter text-foreground font-display">Base de Pacientes</h2>
-                    <p className="text-sm font-bold text-muted-foreground mt-1 hidden sm:block uppercase tracking-widest opacity-60">Gestão de Prontuários e Programas</p>
+            <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8 md:mb-12">
+                <div className="w-full lg:w-auto text-center lg:text-left">
+                    <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tighter text-foreground font-display leading-tight">Base de Pacientes</h2>
+                    <p className="text-[10px] sm:text-xs font-bold text-muted-foreground mt-1 uppercase tracking-widest opacity-60">Gestão de Prontuários e Programas</p>
                 </div>
-                <div className="flex items-center gap-2 md:gap-4 w-full sm:w-auto">
+                <div className="flex items-center gap-2 md:gap-4 w-full lg:w-auto">
                     <button
                         onClick={handleOpenCreate}
-                        className="flex-1 sm:flex-none bg-primary text-primary-foreground font-bold py-2.5 md:py-3 px-5 md:px-7 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/95 transition-all shadow-md text-xs md:text-sm uppercase tracking-widest active-click border border-white/10"
+                        className="flex-1 lg:flex-none bg-primary text-primary-foreground font-bold py-3 px-6 md:px-7 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/95 transition-all shadow-md text-[10px] sm:text-xs uppercase tracking-widest active-click border border-white/10"
                     >
-                        <span className="material-symbols-outlined">person_add</span>
-                        Cadastrar Paciente
+                        <span className="material-symbols-outlined text-xl">person_add</span>
+                        Novo Paciente
                     </button>
                 </div>
             </header>
 
             {/* Search Bar - precise styling */}
-            <div className="mb-6 md:mb-8">
+            <div className="mb-6 md:mb-10">
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 md:gap-4">
                     <div className="relative flex-1">
-                        <span className="material-symbols-outlined absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-lg">search</span>
+                        <span className="material-symbols-outlined absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-lg sm:text-xl">search</span>
                         <input
                             type="text"
-                            placeholder="LOCALIZAR POR NOME, CPF OU CONTATO..."
+                            placeholder="PESQUISAR POR NOME, CPF OU CONTATO..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 md:pl-12 pr-4 py-3 bg-card border border-border rounded-lg shadow-sm focus:border-accent focus:outline-none transition-all text-xs font-bold uppercase tracking-wider placeholder:text-muted-foreground/50 font-display"
+                            className="w-full pl-10 md:pl-12 pr-4 py-3.5 bg-card border border-border rounded-xl shadow-sm focus:border-accent focus:outline-none transition-all text-[11px] sm:text-xs font-bold uppercase tracking-wider placeholder:text-muted-foreground/50 font-display"
                         />
                     </div>
                 </div>

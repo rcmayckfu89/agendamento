@@ -80,7 +80,12 @@ export const Login: React.FC = () => {
             {/* Title Section */}
             <div className="mb-8 lg:mb-12 text-center lg:text-left">
                 <h2 className="text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-white mb-2 lg:mb-3">Bem-vindo de volta</h2>
-                <p className="text-secondary-text dark:text-slate-400 text-lg">Acesse sua conta para continuar</p>
+                <p className="text-secondary-text dark:text-slate-400 text-lg lg:text-xl font-medium lg:font-normal leading-tight">
+                    Acesse o ecossistema de gestão e cuidado à população.
+                </p>
+                <p className="lg:hidden mt-3 text-xs font-bold text-teal-600 dark:text-cyan-500 uppercase tracking-widest opacity-80">
+                    Sincronização de Agendas e Triagem em Tempo Real
+                </p>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-6">
