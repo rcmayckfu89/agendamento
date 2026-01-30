@@ -12,6 +12,7 @@ import { AppProvider } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LayoutProvider, useLayout } from './context/LayoutContext';
 import { ToastProvider } from './context/ToastContext';
+import { SplashScreen } from './components/ui/SplashScreen';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -62,7 +63,7 @@ const AppContent = () => {
   const location = useLocation();
 
   return (
-    <Routes location={location} key={location.pathname}>
+    <Routes location={location}>
       <Route path="/login" element={<Login />} />
 
       <Route path="/" element={
@@ -104,6 +105,59 @@ const AppContent = () => {
   );
 };
 
+// Splash Controller Component handle logic for both Initial Load and Logout
+const SplashController = ({ children }: { children: React.ReactNode }) => {
+  const { session } = useAuth();
+  const [showSplash, setShowSplash] = React.useState(true);
+  const [fadeSplash, setFadeSplash] = React.useState(false);
+  const [lastSessionStr, setLastSessionStr] = React.useState<string | null>('initial');
+  // We use string comparison for session simplicity or just ref check
+
+  const triggerSplashSequence = () => {
+    setShowSplash(true);
+    setFadeSplash(false);
+
+    // Sequence
+    setTimeout(() => {
+      setFadeSplash(true);
+    }, 2000); // Start fade after 2s
+
+    setTimeout(() => {
+      setShowSplash(false);
+    }, 2800); // Remove after fade complete
+  };
+
+  // Initial Load
+  React.useEffect(() => {
+    triggerSplashSequence();
+  }, []);
+
+  // Watch for Logout
+  React.useEffect(() => {
+    // Check if we effectively logged out (had session, now don't)
+    // We skip the very first mount check by using 'initial' state or just logical checks
+    if (lastSessionStr !== 'initial') {
+      const hadSession = lastSessionStr !== null;
+      const hasSession = !!session;
+
+      if (hadSession && !hasSession) {
+        console.log('Logout detected - Triggering Splash');
+        triggerSplashSequence();
+      }
+    }
+
+    // Update tracker
+    setLastSessionStr(session ? 'active' : null);
+  }, [session]);
+
+  return (
+    <>
+      {showSplash && <SplashScreen isFadingOut={fadeSplash} />}
+      {children}
+    </>
+  );
+};
+
 const App: React.FC = () => {
   return (
     <HashRouter>
@@ -111,7 +165,9 @@ const App: React.FC = () => {
         <ToastProvider>
           <AppProvider>
             <LayoutProvider>
-              <AppContent />
+              <SplashController>
+                <AppContent />
+              </SplashController>
             </LayoutProvider>
           </AppProvider>
         </ToastProvider>
