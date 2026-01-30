@@ -82,7 +82,7 @@ export const StatCard: React.FC<StatCardProps> = ({ data }) => {
             </div>
 
             <p className={`text-xs font-bold uppercase mt-2 ${config.footerColor}`}>
-                {config.footer}
+                {data.label || config.footer}
             </p>
         </div>
     );

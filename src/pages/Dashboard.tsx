@@ -52,11 +52,11 @@ export const Dashboard: React.FC = () => {
 
     // --- Data Processing (Memoized) ---
 
-    // 1. Appointments for Selected Date
+    // 1. Appointments for Selected Date - Now includes ALL statuses for processing
     const dayAppointments = useMemo(() => {
         return appointments.filter(a => {
             const rowDate = a.date ? a.date.split('T')[0] : '';
-            return rowDate === selectedDateStr && a.status !== 'canceled';
+            return rowDate === selectedDateStr;
         }).sort((a, b) => a.time.localeCompare(b.time));
     }, [appointments, selectedDateStr]);
 
@@ -65,23 +65,22 @@ export const Dashboard: React.FC = () => {
         const countByRole = (role: string) => {
             return dayAppointments.filter(a => {
                 const prof = professionals.find(p => p.id === a.professional_id);
-                // Simple mapping just for stats demo
-                return prof?.role === role;
+                return prof?.role === role && (a.status === 'scheduled' || a.status === 'in-call');
             }).length;
         };
 
         const currentDocs = countByRole('medico');
         const currentNurses = countByRole('enfermeiro');
-        const urgentCount = dayAppointments.filter(a => a.type === 'DEMANDA ESPONTÂNEA' || a.type === 'HIPERDIA').length;
+        const urgentCount = dayAppointments.filter(a => (a.type === 'DEMANDA ESPONTÂNEA' || a.type === 'HIPERDIA') && a.status !== 'finished' && a.status !== 'canceled').length;
 
-        // Mock totals for now based on some logic (e.g. 10 slots per prof)
+        // Total capacity placeholder
         const totalDocs = professionals.filter(p => p.role === 'medico').length * 15;
-        const totalNurses = professionals.filter(p => p.role === 'enfermeiro').length * 15;
+        const totalNurses = professionals.filter(p => p.role === 'enfermeiro' || p.role === 'tecnico').length * 15;
 
         return [
-            { category: 'Doctor', current: currentDocs, total: Math.max(currentDocs, totalDocs), label: '', icon: 'medical_services', colorClass: '', ringColorClass: '' },
-            { category: 'Nurse', current: currentNurses, total: Math.max(currentNurses, totalNurses), label: '', icon: 'vaccines', colorClass: '', ringColorClass: '' },
-            { category: 'Urgent', current: urgentCount, total: 0, label: '', icon: 'priority_high', colorClass: '', ringColorClass: '' },
+            { category: 'Doctor', current: currentDocs, total: Math.max(currentDocs, totalDocs), label: 'Pacientes em Espera', icon: 'medical_services', colorClass: 'bg-primary', ringColorClass: 'ring-primary/20' },
+            { category: 'Nurse', current: currentNurses, total: Math.max(currentNurses, totalNurses), label: 'Triagem / Procedimentos', icon: 'vaccines', colorClass: 'bg-teal-500', ringColorClass: 'ring-teal-500/20' },
+            { category: 'Urgent', current: urgentCount, total: 0, label: 'Demandas do Dia', icon: 'priority_high', colorClass: 'bg-orange-500', ringColorClass: 'ring-orange-500/20' },
         ];
     }, [dayAppointments, professionals]);
 
@@ -121,7 +120,11 @@ export const Dashboard: React.FC = () => {
         return dayAppointments
             .filter(a => {
                 const prof = professionals.find(p => p.id === a.professional_id);
-                return prof?.role === 'medico';
+                // Only show active appointments (not finished/canceled/no_show)
+                const isActive = ['scheduled', 'in-call', 'waiting'].includes(a.status as string) || (a.queue_status && a.queue_status !== 'waiting');
+                // Backwards compatibility for status
+                const isNotHistory = !['finished', 'canceled', 'no_show', 'auto_closed'].includes(a.status as string);
+                return prof?.role === 'medico' && isNotHistory;
             })
             .map(mapToQueueItem);
     }, [dayAppointments, professionals]);
@@ -130,10 +133,18 @@ export const Dashboard: React.FC = () => {
         return dayAppointments
             .filter(a => {
                 const prof = professionals.find(p => p.id === a.professional_id);
-                return prof?.role === 'enfermeiro' || prof?.role === 'tecnico';
+                const isNotHistory = !['finished', 'canceled', 'no_show', 'auto_closed'].includes(a.status as string);
+                return (prof?.role === 'enfermeiro' || prof?.role === 'tecnico') && isNotHistory;
             })
             .map(mapToQueueItem);
     }, [dayAppointments, professionals]);
+
+    // 4. Daily History (Finished for the selected day)
+    const dayHistory = useMemo(() => {
+        return dayAppointments
+            .filter(a => ['finished', 'canceled', 'no_show', 'auto_closed'].includes(a.status as string))
+            .sort((a, b) => b.time.localeCompare(a.time)); // Recent first
+    }, [dayAppointments]);
 
 
     // --- Handlers ---
@@ -251,12 +262,6 @@ export const Dashboard: React.FC = () => {
                             </div>
                         )}
                     </div>
-                    <div className="flex gap-2">
-                        {/* Filter/Action Placeholders */}
-                        <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-400">
-                            <span className="material-symbols-outlined">filter_list</span>
-                        </button>
-                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -281,6 +286,69 @@ export const Dashboard: React.FC = () => {
                         onLinkNewPatient={() => navigate('/agenda')}
                         onPatientClick={handlePatientClick}
                     />
+                </div>
+            </section>
+
+            {/* Daily History Section */}
+            <section className="mt-16 mb-12">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+                        <span className="material-symbols-outlined text-2xl">history</span>
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white font-display">Histórico do Dia</h2>
+                        <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Registros de Encerramento e Baixas</p>
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+                    {dayHistory.length > 0 ? (
+                        <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                            {dayHistory.map((item) => (
+                                <div key={item.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 text-center">
+                                            <p className="text-sm font-bold text-slate-900 dark:text-white">{item.time}</p>
+                                            <p className="text-[10px] text-slate-400 font-bold uppercase">{parseInt(item.time.split(':')[0]) < 12 ? 'AM' : 'PM'}</p>
+                                        </div>
+                                        <div className="w-px h-8 bg-slate-200 dark:bg-slate-800"></div>
+                                        <div>
+                                            <h4 className="font-bold text-slate-800 dark:text-slate-200">{item.patientName}</h4>
+                                            <p className="text-xs text-slate-400 font-medium">{item.type} • {item.professionalName}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        {item.status === 'finished' ? (
+                                            <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] font-bold rounded-full uppercase tracking-wider flex items-center gap-1.5">
+                                                <span className="material-symbols-outlined text-sm">check_circle</span>
+                                                Concluído
+                                            </span>
+                                        ) : item.status === 'canceled' ? (
+                                            <span className="px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-[10px] font-bold rounded-full uppercase tracking-wider flex items-center gap-1.5">
+                                                <span className="material-symbols-outlined text-sm">cancel</span>
+                                                Cancelado
+                                            </span>
+                                        ) : item.status === 'no_show' ? (
+                                            <span className="px-3 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 text-[10px] font-bold rounded-full uppercase tracking-wider flex items-center gap-1.5">
+                                                <span className="material-symbols-outlined text-sm">person_off</span>
+                                                Faltou
+                                            </span>
+                                        ) : (
+                                            <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-[10px] font-bold rounded-full uppercase tracking-wider flex items-center gap-1.5">
+                                                <span className="material-symbols-outlined text-sm">smart_toy</span>
+                                                Auto-Encerrado
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="p-12 text-center">
+                            <span className="material-symbols-outlined text-slate-200 dark:text-slate-700 text-5xl mb-3">history_toggle_off</span>
+                            <p className="text-slate-400 text-sm font-bold uppercase tracking-widest">Nenhum histórico para este dia</p>
+                        </div>
+                    )}
                 </div>
             </section>
 
