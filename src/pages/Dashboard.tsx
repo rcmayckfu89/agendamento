@@ -153,20 +153,6 @@ export const Dashboard: React.FC = () => {
         setIsActionModalOpen(true);
     };
 
-    const handleCallPatient = async (location: string) => {
-        if (!selectedPatient) return;
-
-        await updateAppointment({
-            id: selectedPatient.originalAppointmentId,
-            queue_status: 'in-call', // Using new DB Enum
-            called_at: new Date().toISOString(),
-            service_location: location
-        });
-
-        setIsActionModalOpen(false);
-        refreshData();
-    };
-
     const handleFinishPatient = async () => {
         if (!selectedPatient) return;
 
@@ -357,7 +343,6 @@ export const Dashboard: React.FC = () => {
                 isOpen={isActionModalOpen}
                 onClose={() => setIsActionModalOpen(false)}
                 patient={selectedPatient}
-                onCall={handleCallPatient}
                 onFinish={handleFinishPatient}
                 onNoShow={handleNoShow}
                 onCancel={handleCancel}
