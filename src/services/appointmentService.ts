@@ -38,7 +38,11 @@ export const appointmentService = {
             time: appointment.time,
             service: appointment.service || appointment.type,
             status: appointment.status || 'scheduled',
-            notes: appointment.notes
+            notes: appointment.notes,
+            queue_status: appointment.queue_status || 'waiting',
+            called_at: appointment.called_at,
+            service_location: appointment.service_location,
+            duration_minutes: appointment.duration_minutes
         };
 
         const { data, error } = await supabase
@@ -58,6 +62,10 @@ export const appointmentService = {
         if (appointment.time) payload.time = appointment.time;
         if (appointment.type) payload.service = appointment.type;
         if (appointment.notes !== undefined) payload.notes = appointment.notes;
+        if (appointment.queue_status) payload.queue_status = appointment.queue_status;
+        if (appointment.called_at) payload.called_at = appointment.called_at;
+        if (appointment.service_location) payload.service_location = appointment.service_location;
+        if (appointment.duration_minutes !== undefined) payload.duration_minutes = appointment.duration_minutes;
 
         const { data, error } = await supabase
             .from('appointments')
