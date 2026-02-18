@@ -32,6 +32,7 @@ export const Settings: React.FC = () => {
     // Blocked Day Form
     const [blockedDate, setBlockedDate] = useState('');
     const [blockedReason, setBlockedReason] = useState('');
+    const [blockedProfId, setBlockedProfId] = useState<string>('');
 
     // --- Professional Handlers ---
 
@@ -101,19 +102,26 @@ export const Settings: React.FC = () => {
         e.preventDefault();
         if (!blockedDate || !blockedReason) return;
 
-        // Prevent duplicates
-        if (blockedDays.some(d => d.date === blockedDate)) {
-            alert('Esta data já está bloqueada.');
+        // Prevent duplicates for the same professional (or global)
+        const isDuplicate = blockedDays.some(d => {
+            if (d.date !== blockedDate) return false;
+            const sameProf = (blockedProfId || null) === (d.professional_id || null);
+            return sameProf;
+        });
+
+        if (isDuplicate) {
+            alert('Esta data já está bloqueada para este profissional.');
             return;
         }
 
         addBlockedDay({
-            // Let DB generate UUID
             date: blockedDate,
-            reason: blockedReason
-        });
+            reason: blockedReason,
+            professional_id: blockedProfId || null
+        } as any);
         setBlockedDate('');
         setBlockedReason('');
+        setBlockedProfId('');
     };
 
     return (
@@ -206,6 +214,19 @@ export const Settings: React.FC = () => {
                                 </h4>
                                 <form onSubmit={handleAddBlockedDay} className="space-y-4">
                                     <div>
+                                        <label className="block text-sm font-medium mb-1">Profissional</label>
+                                        <select
+                                            value={blockedProfId}
+                                            onChange={e => setBlockedProfId(e.target.value)}
+                                            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary"
+                                        >
+                                            <option value="">🏥 Toda a Clínica (Feriado)</option>
+                                            {professionals.map(p => (
+                                                <option key={p.id} value={p.id}>👤 {p.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
                                         <label className="block text-sm font-medium mb-1">Data</label>
                                         <input
                                             required
@@ -222,7 +243,7 @@ export const Settings: React.FC = () => {
                                             type="text"
                                             value={blockedReason}
                                             onChange={e => setBlockedReason(e.target.value)}
-                                            placeholder="Ex: Feriado Nacional, Reforma..."
+                                            placeholder="Ex: Consulta médica, Feriado..."
                                             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary"
                                         />
                                     </div>
@@ -243,12 +264,26 @@ export const Settings: React.FC = () => {
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                         {blockedDays.map(day => {
                                             const dateObj = new Date(day.date + 'T00:00:00');
+                                            const profName = (day as any).professional_id
+                                                ? professionals.find(p => p.id === (day as any).professional_id)?.name || 'Profissional'
+                                                : null;
                                             return (
                                                 <div key={day.id} className="flex items-center justify-between p-3 rounded-lg border border-destructive/20 bg-destructive/5">
                                                     <div>
-                                                        <p className="font-bold text-destructive">
-                                                            {dateObj.toLocaleDateString('pt-BR')}
-                                                        </p>
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <p className="font-bold text-destructive">
+                                                                {dateObj.toLocaleDateString('pt-BR')}
+                                                            </p>
+                                                            {profName ? (
+                                                                <span className="text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.5 rounded-full">
+                                                                    👤 {profName}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-[10px] font-bold bg-muted text-muted-foreground border border-border px-1.5 py-0.5 rounded-full">
+                                                                    🏥 Clínica
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         <p className="text-sm text-foreground/80">{day.reason}</p>
                                                     </div>
                                                     <button

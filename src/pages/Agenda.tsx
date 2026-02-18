@@ -89,8 +89,11 @@ export const Agenda: React.FC = () => {
         const prof = professionals.find(p => p.id === profId);
         if (!prof) return { valid: false, error: 'Profissional não encontrado' };
 
-        // 0. Check Blocked Days (Holidays)
-        const blockedDay = blockedDays.find(b => b.date === dateStr);
+        // 0. Check Blocked Days (global or specific to this professional)
+        const blockedDay = blockedDays.find(b =>
+            b.date === dateStr &&
+            ((b as any).professional_id === null || (b as any).professional_id === undefined || (b as any).professional_id === profId)
+        );
         if (blockedDay) {
             return { valid: false, error: `DATA BLOQUEADA: ${blockedDay.reason}` };
         }
@@ -227,8 +230,11 @@ export const Agenda: React.FC = () => {
         if (!selectedProf) return null;
         const dateStr = formatDateToYYYYMMDD(date);
 
-        // Check blocked
-        const blocked = blockedDays.find(b => b.date === dateStr);
+        // Check blocked: global OR specific to this professional
+        const blocked = blockedDays.find(b =>
+            b.date === dateStr &&
+            ((b as any).professional_id === null || (b as any).professional_id === undefined || (b as any).professional_id === selectedProf.id)
+        );
         if (blocked) return { blocked: true, reason: blocked.reason };
 
         const daySlug = weekDaySlugs[date.getDay()];
