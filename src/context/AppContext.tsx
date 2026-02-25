@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react';
 import { Patient, Professional, Appointment, BlockedDay, AppContextType } from '../types';
 import { patientService } from '../services/patientService';
 import { appointmentService } from '../services/appointmentService';
@@ -36,162 +36,115 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }, 2000);
     };
 
-    // Fetch Data on Mount / Auth Change
-    const refreshData = async () => {
+    const refreshData = useCallback(async () => {
         if (!session) {
             setIsLoading(false);
             return;
         }
 
-        // Prevent overlapping requests
         if (fetchingRef.current) {
-            console.log('⚠️ refreshData skipped: already fetching');
             return;
         }
 
         fetchingRef.current = true;
         setIsLoading(true);
         setError(null);
-        console.log('🚀 refreshData started for user:', session.user.email);
 
-        // Safety Timeout Promise
         const timeoutPromise = new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Tempo limite de conexão excedido (15s)')), 15000)
         );
 
         try {
-            // Wrap all fetches in a race with timeout
             await Promise.race([
                 (async () => {
-                    // 1. Patients
                     try {
                         const fetchedPatients = await patientService.getAll();
-                        console.log('✅ Patients loaded:', fetchedPatients.length);
                         setPatients(fetchedPatients);
                     } catch (err: any) {
-                        console.error('❌ Error loading patients:', err);
-                        // Don't set global error here to allow other data to load
+                        console.error('Erro ao carregar pacientes:', err);
                     }
 
-                    // 2. Professionals
                     try {
                         const fetchedProfessionals = await professionalService.getAll();
-                        console.log('✅ Professionals loaded:', fetchedProfessionals.length);
                         setProfessionals(fetchedProfessionals);
                     } catch (err: any) {
-                        console.error('❌ Error loading professionals:', err);
+                        console.error('Erro ao carregar profissionais:', err);
                     }
 
-                    // 3. Appointments
                     try {
                         const fetchedAppointments = await appointmentService.getAll();
-                        console.log('✅ Appointments loaded:', fetchedAppointments.length);
                         setAppointments(fetchedAppointments);
                     } catch (err: any) {
-                        console.error('❌ Error loading appointments:', err);
+                        console.error('Erro ao carregar agendamentos:', err);
                     }
 
-                    // 4. Blocked Days
                     try {
                         const fetchedBlockedDays = await settingsService.getBlockedDays();
                         setBlockedDays(fetchedBlockedDays);
                     } catch (err: any) {
-                        console.error('❌ Error loading blocked days:', err);
+                        console.error('Erro ao carregar dias bloqueados:', err);
                     }
                 })(),
                 timeoutPromise
             ]);
 
         } catch (err: any) {
-            console.error('CRITICAL Error in refreshData wrapper:', err);
+            console.error('Erro crítico em refreshData:', err);
             setError(err.message || 'Erro ao carregar dados.');
         } finally {
             fetchingRef.current = false;
             setIsLoading(false);
-            console.log('🏁 refreshData finished');
         }
-    };
+    }, [session]);
 
     useEffect(() => {
         refreshData();
     }, [session]);
 
-    // Realtime Event Handlers
-    const handleRealtimeInsert = (newAppointment: any) => {
-        // Check if this is a local update (prevent loop)
-        if (localUpdateIdsRef.current.has(newAppointment.id)) {
-            console.log('🔄 [Realtime] Ignoring INSERT - local update:', newAppointment.id);
-            return;
-        }
-
-        console.log('✨ [Realtime] Processing INSERT:', newAppointment);
-
-        // Resolve names
-        const patientObj = patients.find(p => p.id === newAppointment.patient_id);
-        const professionalObj = professionals.find(p => p.id === newAppointment.professional_id);
-
-        const fullAppointment: Appointment = {
-            ...newAppointment,
-            patientName: patientObj?.name || 'Desconhecido',
-            professionalName: professionalObj?.name || professionalObj?.email || 'Profissional',
-            type: newAppointment.service || 'AGENDA'
-        };
+    const handleRealtimeInsert = useCallback((newAppointment: any) => {
+        if (localUpdateIdsRef.current.has(newAppointment.id)) return;
 
         setAppointments(prev => {
-            // Check if already exists (edge case)
-            if (prev.some(a => a.id === fullAppointment.id)) {
-                console.log('⚠️ [Realtime] Appointment already exists, skipping INSERT');
-                return prev;
-            }
+            if (prev.some(a => a.id === newAppointment.id)) return prev;
+
+            // Resolve names dentro do setter para pegar o estado mais recente
+            const fullAppointment: Appointment = {
+                ...newAppointment,
+                patientName: newAppointment.patientName || 'Desconhecido',
+                professionalName: newAppointment.professionalName || 'Profissional',
+                type: newAppointment.service || 'AGENDA'
+            };
             return [fullAppointment, ...prev];
         });
 
-        // Show toast notification
         showToast(
-            `Novo agendamento: ${fullAppointment.patientName} - ${fullAppointment.time}`,
+            `Novo agendamento registrado às ${newAppointment.time}`,
             'info',
             4000
         );
-    };
+    }, [showToast]);
 
-    const handleRealtimeUpdate = (updatedAppointment: any) => {
-        // Check if this is a local update (prevent loop)
-        if (localUpdateIdsRef.current.has(updatedAppointment.id)) {
-            console.log('🔄 [Realtime] Ignoring UPDATE - local update:', updatedAppointment.id);
-            return;
-        }
-
-        console.log('🔄 [Realtime] Processing UPDATE:', updatedAppointment);
+    const handleRealtimeUpdate = useCallback((updatedAppointment: any) => {
+        if (localUpdateIdsRef.current.has(updatedAppointment.id)) return;
 
         setAppointments(prev => prev.map(a => {
             if (a.id === updatedAppointment.id) {
-                // Resolve names
-                const patientObj = patients.find(p => p.id === updatedAppointment.patient_id);
-                const professionalObj = professionals.find(p => p.id === updatedAppointment.professional_id);
-
                 return {
                     ...a,
                     ...updatedAppointment,
-                    patientName: patientObj?.name || a.patientName || 'Desconhecido',
-                    professionalName: professionalObj?.name || professionalObj?.email || a.professionalName || 'Profissional',
+                    patientName: a.patientName,
+                    professionalName: a.professionalName,
                     type: updatedAppointment.service || a.type || 'AGENDA'
                 };
             }
             return a;
         }));
-    };
+    }, []);
 
-    const handleRealtimeDelete = (appointmentId: string) => {
-        // Check if this is a local update (prevent loop)
-        if (localUpdateIdsRef.current.has(appointmentId)) {
-            console.log('🔄 [Realtime] Ignoring DELETE - local update:', appointmentId);
-            return;
-        }
-
-        console.log('🗑️ [Realtime] Processing DELETE:', appointmentId);
-
+    const handleRealtimeDelete = useCallback((appointmentId: string) => {
+        if (localUpdateIdsRef.current.has(appointmentId)) return;
         setAppointments(prev => prev.filter(a => a.id !== appointmentId));
-    };
+    }, []);
 
     // Actions - Patients
     const addPatient = async (patient: Partial<Patient>) => {

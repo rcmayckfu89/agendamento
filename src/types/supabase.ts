@@ -197,18 +197,21 @@ export type Database = {
                     created_at: string | null
                     email: string | null
                     id: string
+                    name: string | null
                     role: string | null
                 }
                 Insert: {
                     created_at?: string | null
                     email?: string | null
                     id: string
+                    name?: string | null
                     role?: string | null
                 }
                 Update: {
                     created_at?: string | null
                     email?: string | null
                     id?: string
+                    name?: string | null
                     role?: string | null
                 }
                 Relationships: []
@@ -217,33 +220,39 @@ export type Database = {
                 Row: {
                     afternoon_end: string | null
                     afternoon_start: string | null
+                    afternoon_type: string | null
                     created_at: string | null
                     id: string
                     interval_minutes: number
                     morning_end: string | null
                     morning_start: string | null
+                    morning_type: string | null
                     professional_id: string
                     weekday: number
                 }
                 Insert: {
                     afternoon_end?: string | null
                     afternoon_start?: string | null
+                    afternoon_type?: string | null
                     created_at?: string | null
                     id?: string
                     interval_minutes?: number
                     morning_end?: string | null
                     morning_start?: string | null
+                    morning_type?: string | null
                     professional_id: string
                     weekday: number
                 }
                 Update: {
                     afternoon_end?: string | null
                     afternoon_start?: string | null
+                    afternoon_type?: string | null
                     created_at?: string | null
                     id?: string
                     interval_minutes?: number
                     morning_end?: string | null
                     morning_start?: string | null
+                    morning_type?: string | null
                     professional_id: string
                     weekday: number
                 }
@@ -270,7 +279,7 @@ export type Database = {
             }
         }
         Enums: {
-            app_role: "medico" | "enfermeiro" | "tecnico" | "recepcionista"
+            app_role: "medico" | "enfermeiro" | "tecnico" | "recepcionista" | "admin"
             appointment_status: "scheduled" | "canceled" | "finished" | "no_show" | "auto_closed"
             queue_status_type: 'waiting' | 'in-call' | 'urgent' | 'procedure' | 'return'
         }

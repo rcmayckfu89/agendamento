@@ -14,6 +14,7 @@ export const appointmentService = {
         ),
         professional:profiles (
             id,
+            name,
             email,
             role
         )
@@ -25,8 +26,8 @@ export const appointmentService = {
         return (data as any[]).map(item => ({
             ...item,
             patientName: item.patient?.name || 'Desconhecido',
-            professionalName: item.professional?.email || 'Profissional',
-            type: item.service || 'AGENDA' // Default to AGENDA if null
+            professionalName: item.professional?.name || item.professional?.email || 'Profissional',
+            type: item.service || 'AGENDA'
         }));
     },
 

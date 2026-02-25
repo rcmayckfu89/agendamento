@@ -1,7 +1,8 @@
-
-import React, { useState, useEffect } from 'react';
+﻿
+import React, { useState } from 'react';
 import { Professional, ServiceType, ShiftConfig } from '../types';
 import { useApp } from '../context/AppContext';
+import { useToast } from '../context/ToastContext';
 import { availableServiceTypes } from '../constants/serviceTypes';
 import { defaultShift } from '../constants/defaultShift';
 
@@ -9,20 +10,15 @@ const days = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', '
 const slugs = ['seg', 'ter', 'qua', 'qui', 'sex'];
 
 
-export const Settings: React.FC = () => {
+const Settings: React.FC = () => {
     const {
         professionals, addProfessional, updateProfessional, deleteProfessional,
         blockedDays, addBlockedDay, removeBlockedDay
     } = useApp();
-
-    // Mount/Unmount logging for debugging
-    useEffect(() => {
-        console.log('🟢 [Settings] Mounted');
-        return () => console.log('🔴 [Settings] Unmounted');
-    }, []);
-
+    const { showToast } = useToast();
     const [isProfModalOpen, setIsProfModalOpen] = useState(false);
     const [editingProfId, setEditingProfId] = useState<string | null>(null);
+    const [confirmDeleteProfId, setConfirmDeleteProfId] = useState<string | null>(null);
 
     // Form state initialized with empty schedule map
     const [profFormData, setProfFormData] = useState<Professional>({
@@ -73,8 +69,12 @@ export const Settings: React.FC = () => {
 
         if (editingProfId) {
             updateProfessional({ ...profFormData, id: editingProfId });
+            showToast('Profissional atualizado com sucesso!', 'success');
         } else {
-            addProfessional({ ...profFormData, id: Math.random().toString(36).substr(2, 9) });
+            // Novos profissionais devem ser cadastrados via convite Auth.
+            // addProfessional aqui serve apenas para atualizar o estado local.
+            addProfessional({ ...profFormData, id: '' });
+            showToast('Profissional adicionado! Envie o convite de acesso pelo Supabase.', 'info', 5000);
         }
         setIsProfModalOpen(false);
     };
@@ -93,9 +93,14 @@ export const Settings: React.FC = () => {
     };
 
     const handleDeleteProfessional = (id: string) => {
-        if (confirm('Tem certeza que deseja remover este profissional?')) {
-            deleteProfessional(id);
-        }
+        setConfirmDeleteProfId(id);
+    };
+
+    const handleConfirmDeleteProfessional = () => {
+        if (!confirmDeleteProfId) return;
+        deleteProfessional(confirmDeleteProfId);
+        showToast('Profissional removido.', 'info');
+        setConfirmDeleteProfId(null);
     };
 
     const handleAddBlockedDay = (e: React.FormEvent) => {
@@ -110,7 +115,7 @@ export const Settings: React.FC = () => {
         });
 
         if (isDuplicate) {
-            alert('Esta data já está bloqueada para este profissional.');
+            showToast('Esta data já está bloqueada para este profissional.', 'error');
             return;
         }
 
@@ -470,6 +475,22 @@ export const Settings: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            {/* Modal de confirmação de exclusão */}
+            {confirmDeleteProfId && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setConfirmDeleteProfId(null)}>
+                    <div className="bg-card border border-border rounded-xl shadow-2xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-base font-bold mb-2">Remover Profissional</h3>
+                        <p className="text-sm text-muted-foreground mb-6">Tem certeza? Esta ação não pode ser desfeita.</p>
+                        <div className="flex justify-end gap-2">
+                            <button onClick={() => setConfirmDeleteProfId(null)} className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-secondary transition-colors border border-border">Cancelar</button>
+                            <button onClick={handleConfirmDeleteProfessional} className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition-colors">Remover</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
+
+export { Settings };

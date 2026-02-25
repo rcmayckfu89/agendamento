@@ -19,49 +19,51 @@ export const professionalService = {
         if (scheduleError) throw new Error(scheduleError.message);
 
         // Map and Merge
-        const professionals: Professional[] = profiles.map(profile => {
-            // Filter schedules for this pro
-            const proSchedules = schedules.filter(s => s.professional_id === profile.id);
+        const professionals: Professional[] = profiles
+            .filter(profile => profile.role !== 'admin') // Ocultar admins da lista de profissionais
+            .map(profile => {
+                // Filter schedules for this pro
+                const proSchedules = schedules.filter(s => s.professional_id === profile.id);
 
-            // Convert DB Schedule Rows to Frontend Record<string, ShiftConfig>
-            // Frontend expects keys like 'seg-manha', 'seg-tarde' etc.
-            // DB has weekday (0-6). 0=Sun. 
-            // Mapping: 0=dom, 1=seg, 2=ter, 3=qua, 4=qui, 5=sex, 6=sab
-            const dayMap = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+                // Convert DB Schedule Rows to Frontend Record<string, ShiftConfig>
+                // Frontend expects keys like 'seg-manha', 'seg-tarde' etc.
+                // DB has weekday (0-6). 0=Sun. 
+                // Mapping: 0=dom, 1=seg, 2=ter, 3=qua, 4=qui, 5=sex, 6=sab
+                const dayMap = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
 
-            const scheduleMap: Record<string, ShiftConfig> = {};
+                const scheduleMap: Record<string, ShiftConfig> = {};
 
-            proSchedules.forEach(s => {
-                const dayPrefix = dayMap[s.weekday];
+                proSchedules.forEach(s => {
+                    const dayPrefix = dayMap[s.weekday];
 
-                // Morning
-                if (s.morning_start && s.morning_end) {
-                    scheduleMap[`${dayPrefix}-manha`] = {
-                        type: (s as any).morning_type || 'AGENDA',
-                        start: s.morning_start.slice(0, 5),
-                        end: s.morning_end.slice(0, 5),
-                        interval: s.interval_minutes
-                    };
-                }
+                    // Morning
+                    if (s.morning_start && s.morning_end) {
+                        scheduleMap[`${dayPrefix}-manha`] = {
+                            type: (s.morning_type || 'AGENDA') as any,
+                            start: s.morning_start.slice(0, 5),
+                            end: s.morning_end.slice(0, 5),
+                            interval: s.interval_minutes || 30
+                        };
+                    }
 
-                // Afternoon
-                if (s.afternoon_start && s.afternoon_end) {
-                    scheduleMap[`${dayPrefix}-tarde`] = {
-                        type: (s as any).afternoon_type || 'AGENDA',
-                        start: s.afternoon_start.slice(0, 5),
-                        end: s.afternoon_end.slice(0, 5),
-                        interval: s.interval_minutes
-                    };
-                }
+                    // Afternoon
+                    if (s.afternoon_start && s.afternoon_end) {
+                        scheduleMap[`${dayPrefix}-tarde`] = {
+                            type: (s.afternoon_type || 'AGENDA') as any,
+                            start: s.afternoon_start.slice(0, 5),
+                            end: s.afternoon_end.slice(0, 5),
+                            interval: s.interval_minutes || 30
+                        };
+                    }
+                });
+
+                return {
+                    id: profile.id,
+                    name: profile.name || profile.email || 'Profissional',
+                    role: profile.role as UserRole,
+                    schedule: scheduleMap
+                };
             });
-
-            return {
-                id: profile.id,
-                name: (profile as any).name || profile.email || 'Profissional',
-                role: profile.role as UserRole,
-                schedule: scheduleMap
-            };
-        });
 
         return professionals;
     },
