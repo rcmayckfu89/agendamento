@@ -8,19 +8,28 @@ import { Settings } from './pages/Settings';
 import { History } from './pages/History';
 import { Login } from './pages/Login';
 import { Medications } from './pages/Medications';
+import { AdminAccessControl } from './pages/AdminAccessControl';
+import { BlockedAccess } from './pages/BlockedAccess';
+import { MonthlyPaymentNotice } from './components/features/MonthlyPaymentNotice';
 import { AppProvider } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { SystemLockProvider, useSystemLock } from './context/SystemLockContext';
 import { LayoutProvider, useLayout } from './context/LayoutContext';
 import { ToastProvider } from './context/ToastContext';
 import { SplashScreen } from './components/ui/SplashScreen';
+import { isAdminEmail } from './constants/admin';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { session, loading } = useAuth();
+  const { session, user, loading } = useAuth();
+  const { isBlocked, loading: lockLoading } = useSystemLock();
   const { isSidebarCollapsed, isMobile } = useLayout();
   const location = useLocation();
+  const forceBlockedPreview =
+    new URLSearchParams(window.location.search).get('previewBlocked') === '1'
+    || new URLSearchParams(location.search).get('previewBlocked') === '1';
 
-  if (loading) {
+  if (loading || lockLoading) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-2">
@@ -29,6 +38,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         </div>
       </div>
     );
+  }
+
+  if (forceBlockedPreview || (isBlocked && !isAdminEmail(user?.email))) {
+    return <BlockedAccess />;
   }
 
   if (!session) {
@@ -52,6 +65,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
           }`}
       >
         <div className={`${isMobile ? '' : 'max-w-7xl'} mx-auto h-full animate-fade-in`}>
+          <MonthlyPaymentNotice />
           {children}
         </div>
       </main>
@@ -93,6 +107,12 @@ const AppContent = () => {
       <Route path="/settings" element={
         <ProtectedRoute>
           <Settings />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/admin/access" element={
+        <ProtectedRoute>
+          <AdminAccessControl />
         </ProtectedRoute>
       } />
 
@@ -163,13 +183,15 @@ const App: React.FC = () => {
     <HashRouter>
       <AuthProvider>
         <ToastProvider>
-          <AppProvider>
-            <LayoutProvider>
-              <SplashController>
-                <AppContent />
-              </SplashController>
-            </LayoutProvider>
-          </AppProvider>
+          <SystemLockProvider>
+            <AppProvider>
+              <LayoutProvider>
+                <SplashController>
+                  <AppContent />
+                </SplashController>
+              </LayoutProvider>
+            </AppProvider>
+          </SystemLockProvider>
         </ToastProvider>
       </AuthProvider>
     </HashRouter>

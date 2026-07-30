@@ -6,12 +6,15 @@ import { appointmentService } from '../services/appointmentService';
 import { professionalService } from '../services/professionalService';
 import { settingsService } from '../services/settingsService';
 import { useAuth } from './AuthContext';
+import { useSystemLock } from './SystemLockContext';
 import { useToast } from './ToastContext';
+import { isAdminEmail } from '../constants/admin';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const { session } = useAuth();
+    const { session, user } = useAuth();
+    const { isBlocked, loading: lockLoading } = useSystemLock();
     const { showToast } = useToast();
 
     // State
@@ -37,7 +40,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
 
     const refreshData = useCallback(async () => {
+        if (lockLoading) {
+            return;
+        }
+
         if (!session) {
+            setIsLoading(false);
+            return;
+        }
+
+        if (isBlocked && !isAdminEmail(user?.email)) {
+            setPatients([]);
+            setProfessionals([]);
+            setAppointments([]);
+            setBlockedDays([]);
             setIsLoading(false);
             return;
         }
@@ -95,7 +111,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             fetchingRef.current = false;
             setIsLoading(false);
         }
-    }, [session]);
+    }, [session, user?.email, isBlocked, lockLoading]);
 
     useEffect(() => {
         refreshData();

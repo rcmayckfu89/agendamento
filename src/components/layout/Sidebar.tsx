@@ -4,6 +4,7 @@ import { navItems } from '../../constants/navigation';
 import { useLayout } from '../../context/LayoutContext';
 import { useAuth } from '../../context/AuthContext';
 import { useUrgentMedicationsCount } from '../../hooks/useUrgentMedications';
+import { isAdminEmail } from '../../constants/admin';
 
 export const Sidebar: React.FC = () => {
     const {
@@ -14,10 +15,13 @@ export const Sidebar: React.FC = () => {
         toggleMobileMenu,
         closeMobileMenu
     } = useLayout();
-    const { signOut } = useAuth();
+    const { signOut, user } = useAuth();
     const [isDarkMode, setIsDarkMode] = useState(false);
     const { count: urgentMedicationsCount } = useUrgentMedicationsCount();
     const location = useLocation();
+    const visibleNavItems = isAdminEmail(user?.email)
+        ? [...navItems, { name: 'Controle de Acesso', icon: 'admin_panel_settings', path: '/admin/access' }]
+        : navItems;
 
     // Close mobile menu when route changes
     useEffect(() => {
@@ -102,7 +106,7 @@ export const Sidebar: React.FC = () => {
             )}
 
             <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto">
-                {navItems.map((item) => (
+                {visibleNavItems.map((item) => (
                     <NavLink
                         key={item.path}
                         to={item.path}
