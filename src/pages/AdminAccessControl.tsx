@@ -14,10 +14,11 @@ export const AdminAccessControl: React.FC = () => {
         error,
         setSystemBlocked,
         setPaymentNoticeVisible,
+        forceUserRelogin,
         refreshSystemLock
     } = useSystemLock();
 
-    const [savingAction, setSavingAction] = React.useState<'lock' | 'notice' | null>(null);
+    const [savingAction, setSavingAction] = React.useState<'lock' | 'notice' | 'relogin' | null>(null);
 
     if (!isAdminEmail(user?.email)) {
         return <Navigate to="/" replace />;
@@ -50,6 +51,19 @@ export const AdminAccessControl: React.FC = () => {
         setSavingAction('notice');
         try {
             await setPaymentNoticeVisible(nextVisible);
+        } finally {
+            setSavingAction(null);
+        }
+    };
+
+    const handleForceRelogin = async () => {
+        const message = 'Deseja deslogar os usuários comuns para que entrem novamente e recebam as regras atualizadas?';
+        if (!confirm(message)) return;
+
+        setSavingAction('relogin');
+        try {
+            await forceUserRelogin();
+            alert('Novo login solicitado. Usuários comuns serão enviados para a tela de login.');
         } finally {
             setSavingAction(null);
         }
@@ -116,7 +130,7 @@ export const AdminAccessControl: React.FC = () => {
                             </h3>
                             <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
                                 {isPaymentNoticeVisible
-                                    ? 'O lembrete de mensalidade está aparecendo no painel dos usuários. Cada usuário pode fechar o aviso no próprio dia.'
+                                    ? 'O lembrete de mensalidade está aparecendo no painel dos usuários e só será removido quando você desativar aqui.'
                                     : 'O lembrete de mensalidade não está sendo exibido aos usuários.'}
                             </p>
                         </div>
@@ -132,6 +146,37 @@ export const AdminAccessControl: React.FC = () => {
                             {savingAction === 'notice' ? 'progress_activity' : isPaymentNoticeVisible ? 'visibility_off' : 'campaign'}
                         </span>
                         {isPaymentNoticeVisible ? 'Remover aviso' : 'Exibir aviso'}
+                    </button>
+                </div>
+            </section>
+
+            <section className="rounded-lg border border-border bg-card p-6 shadow-soft">
+                <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+                    <div className="flex items-start gap-4">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                            <span className="material-symbols-outlined text-3xl">restart_alt</span>
+                        </div>
+
+                        <div>
+                            <h3 className="text-xl font-bold text-foreground">
+                                Forçar novo login
+                            </h3>
+                            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                                Envia usuários comuns já logados para a tela de login, garantindo que carreguem a versão e as regras mais recentes do sistema.
+                            </p>
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={handleForceRelogin}
+                        disabled={loading || savingAction !== null}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 font-bold text-white shadow-soft transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        <span className="material-symbols-outlined">
+                            {savingAction === 'relogin' ? 'progress_activity' : 'logout'}
+                        </span>
+                        Forçar novo login
                     </button>
                 </div>
             </section>

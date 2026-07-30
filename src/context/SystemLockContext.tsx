@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { systemSettingsService, SystemSettingsState } from '../services/systemSettingsService';
 import { useAuth } from './AuthContext';
 import { supabase } from '../services/supabaseClient';
+import { isAdminEmail } from '../constants/admin';
 
 interface SystemLockContextType extends SystemSettingsState {
     loading: boolean;
@@ -9,14 +10,16 @@ interface SystemLockContextType extends SystemSettingsState {
     refreshSystemLock: () => Promise<void>;
     setSystemBlocked: (isBlocked: boolean) => Promise<void>;
     setPaymentNoticeVisible: (isVisible: boolean) => Promise<void>;
+    forceUserRelogin: () => Promise<void>;
 }
 
 const SystemLockContext = createContext<SystemLockContextType | undefined>(undefined);
 
 export const SystemLockProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { session } = useAuth();
+    const { session, user, signOut } = useAuth();
     const [isBlocked, setIsBlocked] = useState(false);
     const [isPaymentNoticeVisible, setIsPaymentNoticeVisible] = useState(false);
+    const [forceReloginAt, setForceReloginAt] = useState<string | null>(null);
     const [storageMode, setStorageMode] = useState<SystemSettingsState['storageMode']>('remote');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -24,6 +27,7 @@ export const SystemLockProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const applyState = (state: SystemSettingsState) => {
         setIsBlocked(state.isBlocked);
         setIsPaymentNoticeVisible(state.isPaymentNoticeVisible);
+        setForceReloginAt(state.forceReloginAt);
         setStorageMode(state.storageMode);
     };
 
@@ -31,6 +35,7 @@ export const SystemLockProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         if (!session) {
             setIsBlocked(false);
             setIsPaymentNoticeVisible(false);
+            setForceReloginAt(null);
             setLoading(false);
             return;
         }
@@ -74,6 +79,20 @@ export const SystemLockProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         }
     };
 
+    const forceUserRelogin = async () => {
+        setLoading(true);
+        try {
+            const state = await systemSettingsService.forceUserRelogin();
+            applyState(state);
+            setError(null);
+        } catch (err: any) {
+            setError(err.message || 'Erro ao forçar novo login dos usuários.');
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         refreshSystemLock();
     }, [session]);
@@ -102,16 +121,31 @@ export const SystemLockProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         };
     }, [session]);
 
+    useEffect(() => {
+        if (!session || !forceReloginAt || isAdminEmail(user?.email)) return;
+
+        const lastSignInAt = user?.last_sign_in_at || session.user?.last_sign_in_at;
+        if (!lastSignInAt) return;
+
+        if (new Date(lastSignInAt).getTime() < new Date(forceReloginAt).getTime()) {
+            signOut().finally(() => {
+                window.location.hash = '/login';
+            });
+        }
+    }, [session, user?.email, user?.last_sign_in_at, forceReloginAt]);
+
     return (
         <SystemLockContext.Provider value={{
             isBlocked,
             isPaymentNoticeVisible,
+            forceReloginAt,
             storageMode,
             loading,
             error,
             refreshSystemLock,
             setSystemBlocked,
-            setPaymentNoticeVisible
+            setPaymentNoticeVisible,
+            forceUserRelogin
         }}>
             {children}
         </SystemLockContext.Provider>
