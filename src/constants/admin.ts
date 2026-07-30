@@ -1,5 +1,5 @@
-export const ADMIN_EMAIL = 'owner@example.com';
+export const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || '';
 
 export const isAdminEmail = (email?: string | null) => {
-    return email?.toLowerCase() === ADMIN_EMAIL;
+    return Boolean(ADMIN_EMAIL) && email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 };

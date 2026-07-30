@@ -1,5 +1,5 @@
 -- Controle global de bloqueio do sistema.
--- Execute este SQL no Supabase para que o bloqueio valha para todos os usuários.
+-- Antes de executar, substitua owner@example.com pelo e-mail do administrador.
 
 CREATE TABLE IF NOT EXISTS public.app_settings (
   key text PRIMARY KEY,

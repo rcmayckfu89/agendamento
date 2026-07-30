@@ -1,20 +1,17 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Agenda+
 
-# Run and deploy your AI Studio app
+Sistema de agendamento e acompanhamento de atendimentos.
 
-This contains everything you need to run your app locally.
+## Rodar Localmente
 
-View your app in AI Studio: https://ai.studio/apps/drive/1bkysiQV0IcH_JFNWIh7oHX4wGeZPeiUR
+**Pré-requisito:** Node.js
 
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
+1. Instale as dependências:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
+2. Copie `.env.example` para `.env.local` e preencha as variáveis do seu ambiente.
+3. Rode o app:
    `npm run dev`
+
+## Observação de Segurança
+
+Não publique arquivos `.env`, `.env.local`, builds em `dist/` ou pastas temporárias de ferramentas.
