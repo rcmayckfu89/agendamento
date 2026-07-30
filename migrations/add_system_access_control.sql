@@ -54,3 +54,10 @@ CREATE TRIGGER set_app_settings_updated_by
 BEFORE INSERT OR UPDATE ON public.app_settings
 FOR EACH ROW
 EXECUTE FUNCTION public.set_app_settings_updated_by();
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.app_settings;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { systemSettingsService, SystemSettingsState } from '../services/systemSettingsService';
 import { useAuth } from './AuthContext';
+import { supabase } from '../services/supabaseClient';
 
 interface SystemLockContextType extends SystemSettingsState {
     loading: boolean;
@@ -80,8 +81,25 @@ export const SystemLockProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     useEffect(() => {
         if (!session) return;
 
-        const intervalId = window.setInterval(refreshSystemLock, 30000);
-        return () => window.clearInterval(intervalId);
+        const channel = supabase
+            .channel('app-settings-realtime')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'app_settings' },
+                () => {
+                    refreshSystemLock();
+                }
+            )
+            .subscribe();
+
+        const intervalId = window.setInterval(refreshSystemLock, 5000);
+
+        refreshSystemLock();
+
+        return () => {
+            window.clearInterval(intervalId);
+            supabase.removeChannel(channel);
+        };
     }, [session]);
 
     return (
