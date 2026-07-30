@@ -12,6 +12,10 @@ INSERT INTO public.app_settings (key, value)
 VALUES ('system_blocked', '{"isBlocked": false}'::jsonb)
 ON CONFLICT (key) DO NOTHING;
 
+INSERT INTO public.app_settings (key, value)
+VALUES ('payment_notice_visible', '{"isVisible": false}'::jsonb)
+ON CONFLICT (key) DO NOTHING;
+
 ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Authenticated users can read app settings" ON public.app_settings;

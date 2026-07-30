@@ -1,6 +1,7 @@
 import React from 'react';
+import { useSystemLock } from '../../context/SystemLockContext';
 
-const NOTICE_STORAGE_PREFIX = 'agenda_monthly_payment_notice_';
+const NOTICE_STORAGE_PREFIX = 'agenda_payment_notice_dismissed_';
 
 const getTodayKey = () => {
     const now = new Date();
@@ -11,24 +12,25 @@ const getTodayKey = () => {
     return `${year}-${month}-${day}`;
 };
 
-const shouldShowMonthlyNotice = () => {
-    const searchParams = new URLSearchParams(window.location.search);
-    if (searchParams.get('showPaymentNotice') === '1') return true;
-
-    const now = new Date();
-    return now.getDate() === 1;
+const isForcedPreview = () => {
+    return new URLSearchParams(window.location.search).get('showPaymentNotice') === '1';
 };
 
 export const MonthlyPaymentNotice: React.FC = () => {
+    const { isPaymentNoticeVisible } = useSystemLock();
     const [isVisible, setIsVisible] = React.useState(false);
     const todayKey = React.useMemo(() => getTodayKey(), []);
 
     React.useEffect(() => {
-        if (!shouldShowMonthlyNotice()) return;
+        const shouldShow = isForcedPreview() || isPaymentNoticeVisible;
+        if (!shouldShow) {
+            setIsVisible(false);
+            return;
+        }
 
         const dismissedToday = localStorage.getItem(`${NOTICE_STORAGE_PREFIX}${todayKey}`);
         setIsVisible(dismissedToday !== 'dismissed');
-    }, [todayKey]);
+    }, [isPaymentNoticeVisible, todayKey]);
 
     const handleDismiss = () => {
         localStorage.setItem(`${NOTICE_STORAGE_PREFIX}${todayKey}`, 'dismissed');
@@ -38,7 +40,7 @@ export const MonthlyPaymentNotice: React.FC = () => {
     if (!isVisible) return null;
 
     return (
-        <section className="mb-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-amber-950 shadow-sm dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
+        <section className="mb-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-amber-950 shadow-sm animate-sync-slide dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
             <div className="flex items-start gap-3">
                 <span className="material-symbols-outlined mt-0.5 text-amber-600 dark:text-amber-300">
                     payments

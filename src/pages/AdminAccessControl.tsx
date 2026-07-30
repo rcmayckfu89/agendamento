@@ -8,20 +8,22 @@ export const AdminAccessControl: React.FC = () => {
     const { user } = useAuth();
     const {
         isBlocked,
+        isPaymentNoticeVisible,
         storageMode,
         loading,
         error,
         setSystemBlocked,
+        setPaymentNoticeVisible,
         refreshSystemLock
     } = useSystemLock();
 
-    const [isSaving, setIsSaving] = React.useState(false);
+    const [savingAction, setSavingAction] = React.useState<'lock' | 'notice' | null>(null);
 
     if (!isAdminEmail(user?.email)) {
         return <Navigate to="/" replace />;
     }
 
-    const handleToggle = async () => {
+    const handleLockToggle = async () => {
         const nextBlocked = !isBlocked;
         const message = nextBlocked
             ? 'Tem certeza que deseja bloquear o acesso dos usuários ao sistema?'
@@ -29,11 +31,27 @@ export const AdminAccessControl: React.FC = () => {
 
         if (!confirm(message)) return;
 
-        setIsSaving(true);
+        setSavingAction('lock');
         try {
             await setSystemBlocked(nextBlocked);
         } finally {
-            setIsSaving(false);
+            setSavingAction(null);
+        }
+    };
+
+    const handleNoticeToggle = async () => {
+        const nextVisible = !isPaymentNoticeVisible;
+        const message = nextVisible
+            ? 'Deseja exibir o lembrete de mensalidade para os usuários?'
+            : 'Deseja remover o lembrete de mensalidade do painel dos usuários?';
+
+        if (!confirm(message)) return;
+
+        setSavingAction('notice');
+        try {
+            await setPaymentNoticeVisible(nextVisible);
+        } finally {
+            setSavingAction(null);
         }
     };
 
@@ -44,7 +62,7 @@ export const AdminAccessControl: React.FC = () => {
                     Controle de acesso
                 </h2>
                 <p className="mt-1 text-muted-foreground">
-                    Gerencie a disponibilidade do sistema para os demais usuários.
+                    Gerencie a disponibilidade do sistema e os comunicados exibidos aos usuários.
                 </p>
             </header>
 
@@ -71,21 +89,56 @@ export const AdminAccessControl: React.FC = () => {
 
                     <button
                         type="button"
-                        onClick={handleToggle}
-                        disabled={loading || isSaving}
+                        onClick={handleLockToggle}
+                        disabled={loading || savingAction !== null}
                         className={`inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 font-bold text-white shadow-soft transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${isBlocked ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
                     >
                         <span className="material-symbols-outlined">
-                            {isSaving ? 'progress_activity' : isBlocked ? 'lock_open' : 'lock'}
+                            {savingAction === 'lock' ? 'progress_activity' : isBlocked ? 'lock_open' : 'lock'}
                         </span>
                         {isBlocked ? 'Liberar acesso' : 'Bloquear acesso'}
                     </button>
                 </div>
             </section>
 
+            <section className="rounded-lg border border-border bg-card p-6 shadow-soft">
+                <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+                    <div className="flex items-start gap-4">
+                        <div className={`flex h-14 w-14 items-center justify-center rounded-lg ${isPaymentNoticeVisible ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300'}`}>
+                            <span className="material-symbols-outlined text-3xl">
+                                {isPaymentNoticeVisible ? 'campaign' : 'notifications_off'}
+                            </span>
+                        </div>
+
+                        <div>
+                            <h3 className="text-xl font-bold text-foreground">
+                                {isPaymentNoticeVisible ? 'Aviso de mensalidade ativo' : 'Aviso de mensalidade oculto'}
+                            </h3>
+                            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                                {isPaymentNoticeVisible
+                                    ? 'O lembrete de mensalidade está aparecendo no painel dos usuários. Cada usuário pode fechar o aviso no próprio dia.'
+                                    : 'O lembrete de mensalidade não está sendo exibido aos usuários.'}
+                            </p>
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={handleNoticeToggle}
+                        disabled={loading || savingAction !== null}
+                        className={`inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 font-bold text-white shadow-soft transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${isPaymentNoticeVisible ? 'bg-slate-700 hover:bg-slate-800' : 'bg-amber-600 hover:bg-amber-700'}`}
+                    >
+                        <span className="material-symbols-outlined">
+                            {savingAction === 'notice' ? 'progress_activity' : isPaymentNoticeVisible ? 'visibility_off' : 'campaign'}
+                        </span>
+                        {isPaymentNoticeVisible ? 'Remover aviso' : 'Exibir aviso'}
+                    </button>
+                </div>
+            </section>
+
             {storageMode === 'local' && (
                 <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
-                    A configuração está em modo local porque a tabela global ainda não foi encontrada no Supabase. Para bloquear todos os usuários de verdade, execute a migração SQL incluída no projeto.
+                    A configuração está em modo local porque a tabela global ainda não foi encontrada no Supabase. Para aplicar para todos os usuários, execute a migração SQL incluída no projeto.
                 </div>
             )}
 

@@ -1,43 +1,54 @@
 import { supabase } from './supabaseClient';
 
 const SYSTEM_BLOCKED_KEY = 'system_blocked';
-const LOCAL_STORAGE_KEY = 'agenda_system_blocked';
+const PAYMENT_NOTICE_KEY = 'payment_notice_visible';
+const LOCAL_SYSTEM_BLOCKED_KEY = 'agenda_system_blocked';
+const LOCAL_PAYMENT_NOTICE_KEY = 'agenda_payment_notice_visible';
 
-export interface SystemLockState {
+export interface SystemSettingsState {
     isBlocked: boolean;
+    isPaymentNoticeVisible: boolean;
     storageMode: 'remote' | 'local';
 }
 
-const readLocalLock = (): SystemLockState => ({
-    isBlocked: localStorage.getItem(LOCAL_STORAGE_KEY) === 'true',
+const readLocalSettings = (): SystemSettingsState => ({
+    isBlocked: localStorage.getItem(LOCAL_SYSTEM_BLOCKED_KEY) === 'true',
+    isPaymentNoticeVisible: localStorage.getItem(LOCAL_PAYMENT_NOTICE_KEY) === 'true',
     storageMode: 'local'
 });
 
-const writeLocalLock = (isBlocked: boolean): SystemLockState => {
-    localStorage.setItem(LOCAL_STORAGE_KEY, String(isBlocked));
-    return { isBlocked, storageMode: 'local' };
+const writeLocalSetting = (
+    key: typeof LOCAL_SYSTEM_BLOCKED_KEY | typeof LOCAL_PAYMENT_NOTICE_KEY,
+    value: boolean
+) => {
+    localStorage.setItem(key, String(value));
+};
+
+const getSettingValue = (rows: any[] | null, key: string, valueName: string) => {
+    const row = rows?.find(item => item.key === key);
+    return Boolean((row?.value as Record<string, boolean> | null)?.[valueName]);
 };
 
 export const systemSettingsService = {
-    async getSystemLock(): Promise<SystemLockState> {
+    async getSystemSettings(): Promise<SystemSettingsState> {
         const { data, error } = await supabase
             .from('app_settings')
-            .select('value')
-            .eq('key', SYSTEM_BLOCKED_KEY)
-            .maybeSingle();
+            .select('key, value')
+            .in('key', [SYSTEM_BLOCKED_KEY, PAYMENT_NOTICE_KEY]);
 
         if (error) {
             console.warn('Configuracao global indisponivel, usando modo local:', error.message);
-            return readLocalLock();
+            return readLocalSettings();
         }
 
         return {
-            isBlocked: Boolean((data?.value as { isBlocked?: boolean } | null)?.isBlocked),
+            isBlocked: getSettingValue(data, SYSTEM_BLOCKED_KEY, 'isBlocked'),
+            isPaymentNoticeVisible: getSettingValue(data, PAYMENT_NOTICE_KEY, 'isVisible'),
             storageMode: 'remote'
         };
     },
 
-    async updateSystemLock(isBlocked: boolean): Promise<SystemLockState> {
+    async updateSystemLock(isBlocked: boolean): Promise<SystemSettingsState> {
         const { error } = await supabase
             .from('app_settings')
             .upsert({
@@ -48,9 +59,28 @@ export const systemSettingsService = {
 
         if (error) {
             console.warn('Nao foi possivel salvar no Supabase, usando modo local:', error.message);
-            return writeLocalLock(isBlocked);
+            writeLocalSetting(LOCAL_SYSTEM_BLOCKED_KEY, isBlocked);
+            return readLocalSettings();
         }
 
-        return { isBlocked, storageMode: 'remote' };
+        return this.getSystemSettings();
+    },
+
+    async updatePaymentNotice(isVisible: boolean): Promise<SystemSettingsState> {
+        const { error } = await supabase
+            .from('app_settings')
+            .upsert({
+                key: PAYMENT_NOTICE_KEY,
+                value: { isVisible },
+                updated_at: new Date().toISOString()
+            } as any, { onConflict: 'key' });
+
+        if (error) {
+            console.warn('Nao foi possivel salvar no Supabase, usando modo local:', error.message);
+            writeLocalSetting(LOCAL_PAYMENT_NOTICE_KEY, isVisible);
+            return readLocalSettings();
+        }
+
+        return this.getSystemSettings();
     }
 };
